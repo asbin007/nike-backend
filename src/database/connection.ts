@@ -8,7 +8,7 @@ import Collection from "./models/collectionModel";
 import Cart from "./models/cartModel";
 import Order from "./models/orderModel";
 import Payment from "./models/paymentModel";
-import OrderDetails from "./models/orderDetaills"; // if your file is really named orderDetaills.ts, keep it as is
+import OrderDetails from "./models/orderDetaills"; 
 import Chat from "./models/chatModel";
 import Message from "./models/messageModel";
 
