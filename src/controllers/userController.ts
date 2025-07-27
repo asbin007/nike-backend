@@ -145,49 +145,54 @@ class UserController {
     }
   }
 
-  static async resetPassword(req: Request, res: Response): Promise<void> {
-    try {
-      const { email, otp, newPassword, confirmPassword } = req.body;
+static async resetPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const { email, otp, newPassword, confirmPassword } = req.body;
 
-      if (!email || !otp || !newPassword || !confirmPassword) {
-        res.status(400).json({
-          message: "Fill all the fields",
-        });
-        return;
-      }
-      if (newPassword !== confirmPassword) {
-        res.status(400).json({
-          message: "Password and confirm password do not match",
-        });
-        return;
-      }
-      const user = await User.findOne({ where: { email } });
-      if (!user) {
-        res.status(400).json({
-          message: "User not found",
-        });
-        return;
-      }
-      if (user.otp !== otp) {
-        res.status(400).json({
-          message: "Invalid OTP",
-        });
-        return;
-      }
-      checkOtpExpiration(res, user.otpGeneratedTime, 120000);
-
-      user.password = bcrypt.hashSync(newPassword, 10);
-      await user.save();
-      res.status(201).json({
-        message: "Password updated successfully",
+    if (!email || !otp || !newPassword || !confirmPassword) {
+      res.status(400).json({
+        message: "Fill all the fields",
       });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        message: "Internal server error",
-      });
+      return;
     }
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({
+        message: "Password and confirm password do not match",
+      });
+      return;
+    }
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      res.status(400).json({
+        message: "User not found",
+      });
+      return;
+    }
+    if (user.otp !== otp) {
+      res.status(400).json({
+        message: "Invalid OTP",
+      });
+      return;
+    }
+    if (!checkOtpExpiration(user.otpGeneratedTime, 120000)) {
+      res.status(403).json({
+        message: "OTP expired, Sorry try again later 😭!!",
+      });
+      return;
+    }
+
+    user.password = bcrypt.hashSync(newPassword, 10);
+    await user.save();
+    res.status(201).json({
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
+}
 
   static async fetchUsers(req: Request, res: Response) {
     const user = await User.findAll({
