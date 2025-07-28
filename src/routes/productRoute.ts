@@ -2,14 +2,14 @@ import express, { Router } from "express";
 import productController from "../controllers/productController";
 import userMiddleware, { Role } from "../middleware/userMiddleware";
 import errorHandler from "../services/errorHandler";
+import { upload } from '../middleware/multer';
+
 // import multer from "multer";
-import { storage, multer } from "../middleware/multer";
-const upload = multer({ storage: storage });
 const router: Router = express.Router();
 
 router
   .route("/")
-  .post(upload.single("images"), errorHandler(productController.createProduct))
+  .post(upload.array("images",5), errorHandler(productController.createProduct))
   .get(productController.getAllProducts);
 
 router
@@ -19,6 +19,6 @@ router
     userMiddleware.accessTo(Role.Admin),
     errorHandler(productController.deleteProduct)
   )
-  .get(errorHandler(productController.getSingleProduct));
+  .get(errorHandler(productController.getSingleProduct)).patch(upload.array("images",5), errorHandler(productController.updateProduct));
 
 export default router;

@@ -3,10 +3,8 @@ import {
   Column,
   Model,
   DataType,
-  ForeignKey,
+  
 } from "sequelize-typescript";
-import Category from "./categoryModel";
-import Collection from "./collectionModel";
 
 @Table({
   tableName: "shoes",
@@ -76,9 +74,10 @@ class Shoe extends Model {
   declare colors: string[];
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.ARRAY(DataType.STRING),
+    defaultValue: [],
   })
-  declare images: string;
+  declare images: string[];
 
   @Column({
     type: DataType.BOOLEAN,
@@ -99,18 +98,6 @@ class Shoe extends Model {
   })
   declare totalStock: Number;
   
-
-  @ForeignKey(() => Category)
-  @Column({
-    type: DataType.STRING,
-  })
-  declare categoryId: string;
-
-  @ForeignKey(() => Collection)
-  @Column({
-    type: DataType.STRING,
-  })
-  declare collectionId: string;
 }
 
 export default Shoe;

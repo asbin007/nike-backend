@@ -1,37 +1,39 @@
+// import { Request } from 'express'
+// import multer from 'multer'
 
-import { Request } from 'express'
-import multer from 'multer'
+// const storage = multer.diskStorage({
+//     destination : function(req:Request,file:Express.Multer.File,cb:any){
+//         cb(null,'./src/uploads')
+//     }, 
+//     filename : function(req:Request,file:Express.Multer.File,cb:any){
+//         cb(null,Date.now() + "-" + file.originalname)
+//     }
+// })
 
-const storage = multer.diskStorage({
-    destination : function(req:Request,file:Express.Multer.File,cb:any){
-        cb(null,'./src/uploads')
-    }, 
-    filename : function(req:Request,file:Express.Multer.File,cb:any){
-        cb(null,Date.now() + "-" + file.originalname)
-    }
-})
+// export {multer,storage}
 
-export {multer,storage}
-// import { v2 as cloudinary } from "cloudinary";
-// import { CloudinaryStorage } from "multer-storage-cloudinary";
-// import multer from "multer";
-// import { envConfig } from "../config/config";
 
-// Correctly initialize Cloudinary config
-// cloudinary.config({
-//   cloudinary_url: envConfig.cloudinary_url,
-// });
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
+import { envConfig } from '../config/config'; // adjust path if needed
 
-// const storage = new CloudinaryStorage({
-//     cloudinary,
-//     params: async (req, file) => {
-//       return {
-//         folder: "e-shoe",
-//         allowed_formats: ["jpg", "png", "jpeg", "webp"],
-//       };
-//     },
-//   });
+cloudinary.config({
+  cloud_name: envConfig.cloud_name,
+  api_key: envConfig.cloud_api_key,
+  api_secret: envConfig.cloud_api_secret,
+});
 
-// const upload = multer({ storage });
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: 'e-shoe',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    };
+  },
+});
 
-// export { upload };
+const upload = multer({ storage });
+
+export { upload };

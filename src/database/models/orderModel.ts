@@ -82,20 +82,7 @@ class Order extends Model {
     })
     declare totalPrice: number;
 
-    @ForeignKey(()=>User)
-    @Column({
-      type:DataType.STRING,
-      allowNull:false
-    })
-    declare userId:string
-
-
-    @ForeignKey(()=>Payment)
-    @Column({
-      type:DataType.STRING,
-      allowNull:false
-    })
-    declare paymentId:String
+   
 
     @Column({
       type: DataType.STRING,

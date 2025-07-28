@@ -9,6 +9,16 @@ import ProductReview from "../database/models/productReviewModal";
 import User from "../database/models/userModel";
 import { Model } from "sequelize-typescript";
 class ProductController {
+   // Helper function to transform input to array of strings
+   private transformToArray = (value: any): string[] => {
+    if (typeof value === "string") {
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item);
+    }
+    return Array.isArray(value) ? value.map(String).filter((item) => item) : [];
+  };
   async createProduct(req: Request, res: Response): Promise<void> {
     const {
       name,
@@ -26,6 +36,7 @@ class ProductController {
       totalStock,
 
       collectionId,
+      images:imagesUrls
     } = req.body;
 
     if (
@@ -36,7 +47,8 @@ class ProductController {
       !categoryId ||
       !collectionId ||
       !totalStock ||
-      !description
+      !description ||
+      !imagesUrls
     ) {
       res.status(400).json({
         message:
@@ -44,10 +56,18 @@ class ProductController {
       });
       return;
     }
-
-    const filename =
-      req.file?.filename ||
-      "https://weimaracademy.org/wp-content/uploads/2021/08/dummy-user.png";
+  // Handle image field (support both uploaded files and URLs)
+  let images: string[] = this.transformToArray(imagesUrls);
+  if (req.files && Array.isArray(req.files)) {
+    // Assuming multer is configured with .array("images")
+    images = [
+      ...images,
+      ...(req.files as Express.Multer.File[]).map(
+        (file) => `/uploads/${file.filename}`
+      ),
+    ];
+  }
+   
 
     const product = await Shoe.create({
       name,
@@ -56,6 +76,8 @@ class ProductController {
       originalPrice: parseFloat(originalPrice) || 0,
       discount: parseFloat(discount) || 0,
       categoryId,
+      images: images.length ? images : [], // Ensure image is always an array
+
       sizes:
         typeof sizes === "string"
           ? sizes.split(",")
@@ -77,7 +99,7 @@ class ProductController {
       inStock: inStock === "true" || inStock === true,
       isNew: isNew === "true" || isNew === true,
       description: description || "No description",
-      images: filename,
+
 
       collectionId,
       totalStock,
@@ -165,15 +187,28 @@ class ProductController {
       description,
       collectionId,
       totalStock,
+      images: imageUrls,
+
     } = req.body;
 
-    const filename = req.file?.filename;
 
     const product = await Shoe.findByPk(id);
     if (!product) {
       res.status(404).json({ message: "Product not found" });
       return;
     }
+    // Handle image field
+    let images: string[] = this.transformToArray(imageUrls);
+    if (req.files && Array.isArray(req.files)) {
+      images = [
+        ...images,
+        ...(req.files as Express.Multer.File[]).map(
+          (file) => `/uploads/${file.filename}`
+        ),
+      ];
+    }
+    // If no new images provided, retain existing images
+    images = images.length ? images : product.images;
 
     await product.update({
       name: name ?? product.name,
@@ -198,7 +233,7 @@ class ProductController {
           ? isNew === "true" || isNew === true
           : product.isNew,
       description: description ?? product.description,
-      images: filename ? filename : product.images,
+      images: imageUrls,
       collectionId,
       totalStock: totalStock || product.totalStock,
     });

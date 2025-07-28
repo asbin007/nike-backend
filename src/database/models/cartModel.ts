@@ -15,18 +15,6 @@ class Cart extends Model {
   })
   declare id: string;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
-  declare userId: string;
-
-  @ForeignKey(() => Shoe)
-  @Column({
-    type: DataType.UUID,
-    allowNull: false,
-  })
   declare productId: string;
 
   @Column({
