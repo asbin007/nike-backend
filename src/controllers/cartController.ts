@@ -3,14 +3,8 @@ import { Request, Response } from "express";
 import Cart from "../database/models/cartModel";
 import Shoe from "../database/models/productModel";
 
-interface IAuth extends Request {
-  user?: {
-    id: string;
-  };
-}
-
 class CartController {
-  async addToCart(req: IAuth, res: Response) {
+  async addToCart(req: Request, res: Response) {
     const userId = req.user?.id;
     const { productId, quantity, size, color } = req.body;
 
@@ -62,7 +56,7 @@ class CartController {
     });
   }
 
-  async getCart(req: IAuth, res: Response) {
+  async getCart(req: Request, res: Response) {
     const userId = req.user?.id;
 
     if (!userId) {
@@ -85,7 +79,7 @@ class CartController {
     });
   }
 
-  async removeFromCart(req: IAuth, res: Response) {
+  async removeFromCart(req: Request, res: Response) {
     const userId = req.user?.id;
     const { productId } = req.params;
     const product = await Shoe.findByPk(productId);
@@ -103,7 +97,7 @@ class CartController {
     });
   }
 
-  async updateCart(req: IAuth, res: Response) {
+  async updateCart(req: Request, res: Response) {
     const userId = req.user?.id;
     const{ productId} = req.params;
     const { quantity } = req.body;

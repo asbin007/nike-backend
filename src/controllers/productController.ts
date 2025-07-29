@@ -9,8 +9,8 @@ import ProductReview from "../database/models/productReviewModal";
 import User from "../database/models/userModel";
 import { Model } from "sequelize-typescript";
 class ProductController {
-   // Helper function to transform input to array of strings
-   private transformToArray = (value: any): string[] => {
+     // Helper function to transform input to array of strings
+  private static transformToArray(value: any): string[] {
     if (typeof value === "string") {
       return value
         .split(",")
@@ -18,7 +18,7 @@ class ProductController {
         .filter((item) => item);
     }
     return Array.isArray(value) ? value.map(String).filter((item) => item) : [];
-  };
+  }
   async createProduct(req: Request, res: Response): Promise<void> {
     const {
       name,
@@ -47,8 +47,8 @@ class ProductController {
       !categoryId ||
       !collectionId ||
       !totalStock ||
-      !description ||
-      !imagesUrls
+      !description 
+      
     ) {
       res.status(400).json({
         message:
@@ -57,7 +57,7 @@ class ProductController {
       return;
     }
   // Handle image field (support both uploaded files and URLs)
-  let images: string[] = this.transformToArray(imagesUrls);
+  let images: string[] = ProductController.transformToArray(imagesUrls);
   if (req.files && Array.isArray(req.files)) {
     // Assuming multer is configured with .array("images")
     images = [
@@ -66,7 +66,7 @@ class ProductController {
         (file) => `/uploads/${file.filename}`
       ),
     ];
-  }
+    }
    
 
     const product = await Shoe.create({
@@ -198,7 +198,7 @@ class ProductController {
       return;
     }
     // Handle image field
-    let images: string[] = this.transformToArray(imageUrls);
+    let images: string[] = ProductController.transformToArray(imageUrls);
     if (req.files && Array.isArray(req.files)) {
       images = [
         ...images,

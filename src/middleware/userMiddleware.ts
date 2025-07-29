@@ -8,18 +8,23 @@ export enum Role {
   Customer = "customer",
 }
 
-interface IExtendedRequest extends Request {
-  user?: {
-    username: string;
-    email: string;
-    role: string;
-    password: string;
-    id: string;
-  };
+// Extend Express Request interface globally
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        username: string;
+        email: string;
+        role: string;
+        password?: string;
+        id: string;
+      };
+    }
+  }
 }
 class UserMiddleware {
   async isUserLoggedIn(
-    req: IExtendedRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
@@ -47,10 +52,11 @@ class UserMiddleware {
             });
             return;
           }
-        //   @ts-ignore
           req.user = {
             id: userData.id,
             username: userData.username,
+            email: userData.email,
+            role: userData.role,
           };
 
           next();
@@ -59,7 +65,7 @@ class UserMiddleware {
     );
   }
   accessTo(...roles: Role[]) {
-    return (req: IExtendedRequest, res: Response, next: NextFunction) => {
+    return (req: Request, res: Response, next: NextFunction) => {
       let userRole = req.user?.role as Role;
       if (!roles.includes(userRole)) {
         res.status(403).json({

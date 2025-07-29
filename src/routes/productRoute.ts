@@ -18,7 +18,7 @@ router
     userMiddleware.isUserLoggedIn,
     userMiddleware.accessTo(Role.Admin),
     errorHandler(productController.deleteProduct)
-  )
+)
   .get(errorHandler(productController.getSingleProduct)).patch(upload.array("images",5), errorHandler(productController.updateProduct));
 
 export default router;

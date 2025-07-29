@@ -3,14 +3,10 @@ import Shoe from "../database/models/productModel";
 import ProductReview from "../database/models/productReviewModal";
 import User from "../database/models/userModel";
 
-interface IAuth extends Request {
-  user?: {
-    id: string;
-  };
-}
+
 
 class ReviewController {
-  async postReview(req: IAuth, res: Response): Promise<void> {
+  async postReview(req: Request, res: Response): Promise<void> {
     const userId = req.user?.id;
     const { rating, comment, productId } = req.body;
 
@@ -70,7 +66,14 @@ class ReviewController {
   }
 
   async getAllReviews(req: Request, res: Response): Promise<void> {
-    const data = await ProductReview.findAll();
+    const data = await ProductReview.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ["username", "id"],
+        },
+      ],
+    });
 
     if (data.length === 0) {
       res.status(404).json({
@@ -108,7 +111,7 @@ class ReviewController {
     });
   }
 
-  async deleteReview(req: IAuth, res: Response): Promise<void> {
+  async deleteReview(req: Request, res: Response): Promise<void> {
     const userId = req.user!.id;
     const { id } = req.params;
 
@@ -134,7 +137,7 @@ class ReviewController {
     });
   }
 
-  async updateReview(req: IAuth, res: Response): Promise<void> {
+  async updateReview(req: Request, res: Response): Promise<void> {
     const userId = req.user!.id; // guaranteed by middleware
     const { id } = req.params;
     const { rating, comment } = req.body;

@@ -35,6 +35,9 @@ class Message extends Model{
   @Column(DataType.TEXT)
   declare content: string;
 
+  @Column({ type: DataType.STRING, allowNull: true })
+  declare imageUrl: string;
+
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare read: boolean;
 

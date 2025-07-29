@@ -10,6 +10,7 @@ import User from "./src/database/models/userModel";
 import Order from "./src/database/models/orderModel";
 import Payment from "./src/database/models/paymentModel";
 import Message from "./src/database/models/messageModel";
+  import Chat from "./src/database/models/chatModel";
 
 function startServer() {
   const server = app.listen(envConfig.port, () => {
@@ -25,6 +26,9 @@ function startServer() {
       origin: ["http://localhost:5173", "http://localhost:3000"],
     },
   });
+
+    // Export io for use in other modules
+    (global as any).io = io;
   let activeUser: { socketId: string; userId: string; role: string }[] = [];
   let addToOnlineUsers = (socketId: string, userId: string, role: string) => {
     activeUser = activeUser.filter((user) => user.userId !== userId);
@@ -51,6 +55,14 @@ function startServer() {
           }
           console.log(socket.id, result.userId, userData.role);
           addToOnlineUsers(socket.id, result.userId, userData.role);
+            
+            // Store user data in socket for later use
+            socket.data = {
+              userId: result.userId,
+              role: userData.role,
+              username: userData.username
+            };
+            
           console.log(activeUser);
         }
       );
@@ -113,29 +125,105 @@ function startServer() {
       socket.join(chatId);
     });
 
+      socket.on("leaveChat", (chatId: string) => {
+        console.log(`User left chat: ${chatId}`);
+        socket.leave(chatId);
+      });
+
     socket.on("sendMessage", async (data) => {
-      const { chatId, senderId, receiverId, content } = data;
-      if (!chatId || !senderId || !receiverId || !content) {
+      const { chatId, content, imageUrl } = data;
+      const senderId = socket.data?.userId;
+      
+      if (!chatId || (!content && !imageUrl) || !senderId) {
         socket.emit(
           "error",
-          "Chat ID, Sender ID, Receiver ID and content are required"
+          "Chat ID, content or image, and sender ID are required"
         );
         return;
       }
+
+        try {
+          // Verify chat exists and user has access
+          const chat = await Chat.findOne({
+            where: { 
+              id: chatId,
+              [socket.data?.role === 'admin' ? 'adminId' : 'customerId']: senderId 
+            }
+          });
+
+          if (!chat) {
+            socket.emit("error", "Access denied to this chat");
+            return;
+          }
+
+          const receiverId = socket.data?.role === 'admin' ? chat.customerId : chat.adminId;
+
       const message = await Message.create({
         chatId,
         senderId,
         receiverId,
-        content,
+          content: content || "",
+          imageUrl: imageUrl || null,
         read: false,
       });
+
+          // Update chat's updatedAt timestamp
+          await chat.update({ updatedAt: new Date() });
+
+          const messageWithUser = await Message.findOne({
+            where: { id: message.id },
+            include: [
+              {
+                model: User,
+                as: "Sender",
+                attributes: ["id", "username", "email", "role"],
+              },
+              {
+                model: User,
+                as: "Receiver",
+                attributes: ["id", "username", "email", "role"],
+              },
+            ],
+          });
+
       // send to all clients in the chat room
-      io.to(chatId).emit("receiveMessage", message);
-      console.log(`Message sent in chat ${chatId}:`, message);
-    });
+          io.to(chatId).emit("receiveMessage", messageWithUser);
+          
+          // Send notification to receiver if they're not in the chat room
+          const receiverSocket = activeUser.find(user => user.userId === receiverId);
+          if (receiverSocket && !socket.rooms.has(chatId)) {
+            io.to(receiverSocket.socketId).emit("newMessageNotification", {
+              chatId,
+              message: messageWithUser,
+              sender: socket.data?.username
+            });
+          }
+
+          console.log(`Message sent in chat ${chatId}:`, messageWithUser);
+        } catch (error) {
+          console.error("Error sending message:", error);
+          socket.emit("error", "Failed to send message");
+        }
+      });
+
     socket.on("typing", ({ chatId, userId }) => {
       socket.to(chatId).emit("typing", { chatId, userId });
     });
+
+      socket.on("stopTyping", ({ chatId, userId }) => {
+        socket.to(chatId).emit("stopTyping", { chatId, userId });
+      });
+
+      socket.on("markAsRead", async ({ chatId }) => {
+        const userId = socket.data?.userId;
+        if (userId && chatId) {
+          await Message.update(
+            { read: true },
+            { where: { chatId, receiverId: userId, read: false } }
+          );
+          socket.to(chatId).emit("messagesRead", { chatId, userId });
+        }
+      });
   });
 }
 startServer();

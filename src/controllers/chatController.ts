@@ -2,23 +2,31 @@ import { Request, Response } from "express";
 import Chat from "../database/models/chatModel";
 import User from "../database/models/userModel";
 import Message from "../database/models/messageModel";
+import { upload } from "../middleware/multer";
 
-interface IAuth extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+
 class ChatController {
   //create or get chat between  user and admin
   async getOrCreateChat(req: Request, res: Response) {
-    const { adminId, customerId } = req.body;
+    const { adminId } = req.body;
+    const customerId = req.user?.id;
+    
     if (!adminId || !customerId) {
       res.status(400).json({
         message: "Admin ID and Customer ID are required",
       });
       return;
     }
+
+    // Check if admin exists
+    const admin = await User.findOne({ where: { id: adminId, role: 'admin' } });
+    if (!admin) {
+      res.status(404).json({
+        message: "Admin not found",
+      });
+      return;
+    }
+
     let chat = await Chat.findOne({
       where: {
         adminId,
@@ -38,30 +46,55 @@ class ChatController {
   }
 
   // get all messages in a chat
-  async getChatMessages(req: IAuth, res: Response) {
+  async getChatMessages(req: Request, res: Response) {
     const { chatId } = req.params;
+    const userId = req.user?.id;
+    
     if (!chatId) {
       res.status(400).json({
         message: "Chat ID is required",
       });
       return;
     }
+
+    // Verify user has access to this chat
+    const chat = await Chat.findOne({
+      where: { 
+        id: chatId,
+        [req.user?.role === 'admin' ? 'adminId' : 'customerId']: userId 
+      }
+    });
+
+    if (!chat) {
+      res.status(403).json({
+        message: "Access denied to this chat",
+      });
+      return;
+    }
+
     const messages = await Message.findAll({
       where: { chatId },
       include: [
         {
           model: User,
           as: "Sender",
-          attributes: ["id", "username", "email"],
+          attributes: ["id", "username", "email", "role"],
         },
         {
           model: User,
           as: "Receiver",
-          attributes: ["id", "username", "email"],
+          attributes: ["id", "username", "email", "role"],
         },
       ],
       order: [["createdAt", "ASC"]],
     });
+
+    // Mark messages as read for the current user
+    await Message.update(
+      { read: true },
+      { where: { chatId, receiverId: userId, read: false } }
+    );
+
     res.status(200).json({
       message: "Messages retrieved successfully",
       data: messages,
@@ -69,31 +102,71 @@ class ChatController {
   }
 
   // send message in a chat
-  async sendMessage(req: IAuth, res: Response) {
-    const { chatId, senderId, receiverId, content } = req.body;
-    if (!chatId || !senderId || !receiverId || !content) {
+  async sendMessage(req: Request, res: Response) {
+    const { chatId, content } = req.body;
+    const senderId = req.user?.id;
+    const imageUrl = (req as any).file?.path; // Get uploaded image URL
+    
+    if (!chatId || (!content && !imageUrl) || !senderId) {
       res.status(400).json({
-        message: "Chat ID, Sender ID, Receiver ID and content are required",
+        message: "Chat ID, content or image, and sender ID are required",
       });
       return;
     }
+
+    // Verify user has access to this chat
+    const chat = await Chat.findOne({
+      where: { 
+        id: chatId,
+        [req.user?.role === 'admin' ? 'adminId' : 'customerId']: senderId 
+      }
+    });
+
+    if (!chat) {
+      res.status(403).json({
+        message: "Access denied to this chat",
+      });
+      return;
+    }
+
+    const receiverId = req.user?.role === 'admin' ? chat.customerId : chat.adminId;
+
     const message = await Message.create({
       chatId,
       senderId,
       receiverId,
-      content,
+      content: content || "",
+      imageUrl: imageUrl || null,
       read: false,
+    });
+
+    // Update chat's updatedAt timestamp
+    await chat.update({ updatedAt: new Date() });
+
+    const messageWithUser = await Message.findOne({
+      where: { id: message.id },
+      include: [
+        {
+          model: User,
+          as: "Sender",
+          attributes: ["id", "username", "email", "role"],
+        },
+        {
+          model: User,
+          as: "Receiver",
+          attributes: ["id", "username", "email", "role"],
+        },
+      ],
     });
 
     res.status(200).json({
       message: "Message sent successfully",
-      data: message,
+      data: messageWithUser,
     });
   }
 
   // get all chats
-
-  async getAllChats(req: IAuth, res: Response) {
+  async getAllChats(req: Request, res: Response) {
     const { id: userId, role } = req.user || {};
     if (!userId || !role) {
       res.status(400).json({
@@ -109,7 +182,13 @@ class ChatController {
         {
           model: User,
           as: role === "admin" ? "Customer" : "Admin",
-          attributes: ["id", "username", "email"],
+          attributes: ["id", "username", "email", "role"],
+        },
+        {
+          model: Message,
+          limit: 1,
+          order: [["createdAt", "DESC"]],
+          attributes: ["content", "createdAt", "read"],
         },
       ],
       order: [["updatedAt", "DESC"]],
@@ -121,9 +200,72 @@ class ChatController {
     });
   }
 
-  //   MARK AS READ
+  // Get unread message count for a user
+  async getUnreadCount(req: Request, res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(400).json({
+        message: "User ID is required",
+      });
+      return;
+    }
 
-  async markMessageAsRead(req: IAuth, res: Response) {
+    const unreadCount = await Message.count({
+      where: { receiverId: userId, read: false },
+    });
+
+    res.status(200).json({
+      message: "Unread count retrieved successfully",
+      data: { unreadCount },
+    });
+  }
+
+  // Get all admin users for customer to choose from
+  async getAdminUsers(req: Request, res: Response) {
+    const admins = await User.findAll({
+      where: { role: "admin" },
+      attributes: ["id", "username", "email"],
+    });
+
+    res.status(200).json({
+      message: "Admin users retrieved successfully",
+      data: admins,
+    });
+  }
+
+  // Get chat statistics for admin dashboard
+  async getChatStats(req: Request, res: Response) {
+    const { id: userId, role } = req.user || {};
+    if (!userId || role !== "admin") {
+      res.status(403).json({
+        message: "Admin access required",
+      });
+      return;
+    }
+
+    const totalChats = await Chat.count({ where: { adminId: userId } });
+    const unreadMessages = await Message.count({
+      where: { receiverId: userId, read: false },
+    });
+    const totalMessages = await Message.count({
+      include: [{
+        model: Chat,
+        where: { adminId: userId }
+      }]
+    });
+
+    res.status(200).json({
+      message: "Chat statistics retrieved successfully",
+      data: {
+        totalChats,
+        unreadMessages,
+        totalMessages,
+      },
+    });
+  }
+
+  //   MARK AS READ
+  async markMessageAsRead(req: Request, res: Response) {
     const { chatId } = req.params;
     const userId = req.user?.id;
 

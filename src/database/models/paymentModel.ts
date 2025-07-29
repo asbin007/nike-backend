@@ -34,6 +34,8 @@ class Payment extends Model {
     type:DataType.STRING
   })
   declare pidx:string
+
+
 }
 
 export default Payment;

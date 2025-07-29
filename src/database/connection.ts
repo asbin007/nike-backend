@@ -30,7 +30,7 @@ try {
   process.exit(1);
 }
 
-sequelize.sync({ force: false, alter: false }).then(() => {
+sequelize.sync({ force: false, alter: true }).then(() => {
   console.log("Database synced successfully");
 });
 
