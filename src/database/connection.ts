@@ -12,8 +12,15 @@ import OrderDetails from "./models/orderDetaills";
 import Chat from "./models/chatModel";
 import Message from "./models/messageModel";
 
+// Check if database URL exists
+if (!envConfig.databaseUrl) {
+  console.error("DATABASE_URL environment variable is not set!");
+  process.exit(1);
+}
+
 const sequelize = new Sequelize(envConfig.databaseUrl as string, {
   models: [__dirname + "/models"],
+  logging: false, // Disable logging in production
 });
 
 try {

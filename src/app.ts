@@ -18,8 +18,11 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://nike-frontend.vercel.app", // Add your frontend URL here
-      "https://nike-store-frontend.vercel.app" // Alternative frontend URL
+      "https://nike-frontend.vercel.app",
+      "https://nike-store-frontend.vercel.app",
+      "https://nike-store-frontend.vercel.app", // Add your actual frontend URL
+      "https://nike-frontend.vercel.app", // Add your actual frontend URL
+      "*" // Temporary for testing - remove this later
     ],
     credentials: true
   })

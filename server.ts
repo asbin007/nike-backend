@@ -13,21 +13,30 @@ import Message from "./src/database/models/messageModel";
   import Chat from "./src/database/models/chatModel";
 
 function startServer() {
-  const server = app.listen(envConfig.port, () => {
-    categoryController.seedCategory();
-
-    console.log(`Server is running on port ${envConfig.port}`);
-    adminSeeder();
-    collectionController.seedCollection();
-  });
+  try {
+    const server = app.listen(envConfig.port, () => {
+      console.log(`Server is running on port ${envConfig.port}`);
+      
+      // Only run seeders if database is connected
+      try {
+        categoryController.seedCategory();
+        adminSeeder();
+        collectionController.seedCollection();
+      } catch (error) {
+        console.error('Error running seeders:', error);
+      }
+    });
 
   const io = new Server(server, {
     cors: {
       origin: [
         "http://localhost:5173", 
         "http://localhost:3000",
-        "https://nike-frontend.vercel.app", // Add your frontend URL here
-        "https://nike-store-frontend.vercel.app" // Alternative frontend URL
+        "https://nike-frontend.vercel.app",
+        "https://nike-store-frontend.vercel.app",
+        "https://nike-store-frontend.vercel.app", // Add your actual frontend URL
+        "https://nike-frontend.vercel.app", // Add your actual frontend URL
+        "*" // Temporary for testing - remove this later
       ],
     },
   });
@@ -229,6 +238,17 @@ function startServer() {
           socket.to(chatId).emit("messagesRead", { chatId, userId });
         }
       });
-  });
+    });
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
 }
-startServer();
+
+// For Vercel deployment
+if (process.env.NODE_ENV !== 'production') {
+  startServer();
+}
+
+// Export for Vercel
+export default startServer;
