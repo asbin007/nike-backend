@@ -15,9 +15,24 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "*",
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://nike-frontend.vercel.app", // Add your frontend URL here
+      "https://nike-store-frontend.vercel.app" // Alternative frontend URL
+    ],
+    credentials: true
   })
 );
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ 
+    message: "Nike Backend is running successfully!",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development"
+  });
+});
 
 app.use("/api/auth", userRoute);
 app.use("/api/category", categoryRoute);
