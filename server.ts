@@ -16,14 +16,19 @@ function startServer() {
   try {
     const server = app.listen(envConfig.port, () => {
       console.log(`Server is running on port ${envConfig.port}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       
       // Only run seeders if database is connected
-      try {
-        categoryController.seedCategory();
-        adminSeeder();
-        collectionController.seedCollection();
-      } catch (error) {
-        console.error('Error running seeders:', error);
+      if (envConfig.databaseUrl) {
+        try {
+          categoryController.seedCategory();
+          adminSeeder();
+          collectionController.seedCollection();
+        } catch (error) {
+          console.error('Error running seeders:', error);
+        }
+      } else {
+        console.log('Skipping seeders - no database connection');
       }
     });
 

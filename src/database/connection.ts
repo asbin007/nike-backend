@@ -15,12 +15,24 @@ import Message from "./models/messageModel";
 // Check if database URL exists
 if (!envConfig.databaseUrl) {
   console.error("DATABASE_URL environment variable is not set!");
-  process.exit(1);
+  console.error("Please set DATABASE_URL in Render environment variables");
+  // Don't exit in production, let the app start without database
+  if (process.env.NODE_ENV === 'production') {
+    console.log("Starting without database connection...");
+  } else {
+    process.exit(1);
+  }
 }
 
 const sequelize = new Sequelize(envConfig.databaseUrl as string, {
   models: [__dirname + "/models"],
   logging: false, // Disable logging in production
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  }
 });
 
 try {
