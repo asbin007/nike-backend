@@ -6,7 +6,9 @@
     "dev": "nodemon server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "postinstall": "npm run build"
+    "start:ts": "ts-node server.ts",
+    "postinstall": "npm run build",
+    "render-build": "npm install && npm run build"
   },
   "keywords": [],
   "author": "",
