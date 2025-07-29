@@ -11,7 +11,8 @@
     "render-build": "npm install && npm run build",
     "render-start": "node dist/server.js",
     "render-deploy": "npm run build && npm start",
-    "render-simple": "node dist/server.js"
+    "render-simple": "node dist/server.js",
+    "render-ts": "npx ts-node server.ts"
   },
   "keywords": [],
   "author": "",
