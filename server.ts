@@ -245,10 +245,10 @@ function startServer() {
   }
 }
 
-// For Vercel deployment
+// For production deployment (Render/Vercel)
 if (process.env.NODE_ENV !== 'production') {
   startServer();
 }
 
-// Export for Vercel
+// Export for serverless deployment
 export default startServer;
