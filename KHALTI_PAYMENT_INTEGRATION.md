@@ -97,7 +97,7 @@ const CustomerOrderTracking = () => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    // Connect to WebSocket
+    // Connect to WebSocket for chart
     const newSocket = io('http://localhost:3000', {
       auth: { token: localStorage.getItem('token') }
     });
