@@ -1,6 +1,7 @@
 import express from "express";
 import "./database/connection";
 import userRoute from "./routes/userRoute";
+import superAdminRoute from "./routes/superAdminRoute";
 import categoryRoute from "./routes/categoryRoute";
 import productRoute from "./routes/productRoute";
 import collectionRoute from "./routes/collectionRoute";
@@ -38,6 +39,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", userRoute);
+app.use("/api/super-admin", superAdminRoute);
 app.use("/api/category", categoryRoute);
 app.use("/api/product", productRoute);
 app.use('/api/collection',collectionRoute)

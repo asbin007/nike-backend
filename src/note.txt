@@ -1,0 +1,16 @@
+👑 Super Admin (Highest Level)
+├── Can create admins
+├── Can manage all admins
+├── Can view system statistics
+└── Can reset admin passwords
+
+👨‍💼 Admin (Middle Level)
+├── Can manage customers
+├── Can manage products
+├── Can manage orders
+└── Cannot access super admin functions
+
+👤 Customer (Lowest Level)
+├── Can browse products
+├── Can place orders
+└── Cannot access admin functions

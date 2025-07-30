@@ -31,7 +31,7 @@ class User extends Model{
     declare password:string 
 
     @Column({
-        type : DataType.ENUM('customer','admin'), 
+        type : DataType.ENUM('customer','admin','super_admin'), 
         defaultValue : 'customer'
     })
     declare role:string
@@ -45,6 +45,13 @@ class User extends Model{
         type : DataType.STRING
     })
     declare otpGeneratedTime : string
+
+    @Column({
+        type : DataType.BOOLEAN,
+        defaultValue : false,
+        field: 'isverified'
+    })
+    declare isVerified : boolean
 }
 
 export default User

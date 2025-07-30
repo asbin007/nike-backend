@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import adminSeeder from "./src/adminSeeder";
+import superAdminSeeder from "./src/superAdminSeeder";
 import app from "./src/app";
 import { envConfig } from "./src/config/config";
 import categoryController from "./src/controllers/categoryController";
@@ -22,6 +23,7 @@ function startServer() {
       if (envConfig.databaseUrl) {
         try {
           categoryController.seedCategory();
+          superAdminSeeder(); // Run super admin seeder first
           adminSeeder();
           collectionController.seedCollection();
         } catch (error) {

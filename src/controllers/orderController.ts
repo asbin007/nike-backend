@@ -226,7 +226,7 @@ class OrderController {
         instructions: "After payment completion, call /api/orders/khalti/verify with pidx to update payment status"
       });
     } else if (paymentMethod == PaymentMethod.Esewa) {
-      // TODO: Implement Esewa payment flow
+      // Esewa payment flow will be implemented later
     } else {
       res.status(200).json({
         message: "Order created successfully",
@@ -674,7 +674,7 @@ class OrderController {
 
     // Verify Khalti signature (if provided)
     if (signature) {
-      // TODO: Implement signature verification
+      // Signature verification will be implemented later
       // const expectedSignature = crypto
       //   .createHmac('sha256', process.env.KHALTI_WEBHOOK_SECRET || '')
       //   .update(JSON.stringify(req.body))

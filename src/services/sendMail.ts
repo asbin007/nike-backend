@@ -5,7 +5,7 @@ interface IData{
     to:string;
     subject:string;
     text:string;
-
+    html?:string;
 }
 const sendMail= async(data:IData)=>{
     try {
@@ -21,14 +21,15 @@ const sendMail= async(data:IData)=>{
             from:envConfig.email,
             to:data.to,
             subject:data.subject,
-            text:data.text
+            text:data.text,
+            html:data.html
         }
         await transporter.sendMail(mailOptions)
         console.log("Email sent successfully")
         return true
 
     } catch (error) {
-        console.log("Email sent failed",error)
+        console.error("Email sent failed",error)
         return false
     }
 }

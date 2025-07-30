@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Development
+  postgres_dev:
+    image: postgres:15-alpine
+    container_name: nike_postgres_dev
+    environment:
+      POSTGRES_DB: nike_db_dev
+      POSTGRES_USER: nike_user_dev
+      POSTGRES_PASSWORD: nike_password_dev
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - nike_dev_network
+    restart: unless-stopped
+
+  # Redis for Development
+  redis_dev:
+    image: redis:7-alpine
+    container_name: nike_redis_dev
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - nike_dev_network
+    restart: unless-stopped
+
+  # Development Application
+  app_dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nike_backend_dev
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://nike_user_dev:nike_password_dev@postgres_dev:5432/nike_db_dev
+      - JWT_SECRETE_KEY=dev_jwt_secret_key
+      - EMAIL=dev_email@example.com
+      - PASSWORD=dev_email_password
+      - ADMIN_EMAIL=dev_admin@example.com
+      - ADMIN_PASSWORD=dev_admin_password
+      - ADMIN_USERNAME=dev_admin
+      - CLOUDINARY_URL=your_cloudinary_url
+      - CLOUDINARY_CLOUD_NAME=your_cloud_name
+      - CLOUDINARY_API_KEY=your_api_key
+      - CLOUDINARY_API_SECRET=your_api_secret
+    ports:
+      - "3001:3000"  # Different port to avoid conflicts
+    depends_on:
+      - postgres_dev
+      - redis_dev
+    networks:
+      - nike_dev_network
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./src/uploads:/app/src/uploads
+    command: npm run dev
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  nike_dev_network:
+    driver: bridge 
