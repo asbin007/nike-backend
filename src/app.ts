@@ -13,21 +13,27 @@ import cors from "cors";
 const app = express();
 app.use(express.json());
 
+// CORS configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://nike-frontend.vercel.app",
+  "https://nike-store-frontend.vercel.app"
+];
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://nike-frontend.vercel.app",
-      "https://nike-store-frontend.vercel.app",
-      "https://nike-store-frontend.vercel.app", // Add your actual frontend URL
-      "https://nike-frontend.vercel.app", // Add your actual frontend URL
-      "*" // Temporary for testing - remove this later
-    ],
-    credentials: true
-  })
-);
+// Add FRONTEND_URL if it exists
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+};
+
+app.use(cors(corsOptions));
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

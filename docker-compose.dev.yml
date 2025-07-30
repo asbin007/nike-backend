@@ -1,61 +1,57 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database for Development
-  postgres_dev:
+  # PostgreSQL Database
+  postgres:
     image: postgres:15-alpine
     container_name: nike_postgres_dev
     environment:
       POSTGRES_DB: nike_db_dev
-      POSTGRES_USER: nike_user_dev
-      POSTGRES_PASSWORD: nike_password_dev
+      POSTGRES_USER: nike_user
+      POSTGRES_PASSWORD: nike_password
     ports:
-      - "5433:5432"  # Different port to avoid conflicts
+      - "5432:5432"
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     networks:
-      - nike_dev_network
+      - nike_network_dev
     restart: unless-stopped
 
-  # Redis for Development
-  redis_dev:
+  # Redis for caching (optional)
+  redis:
     image: redis:7-alpine
     container_name: nike_redis_dev
     ports:
-      - "6380:6379"  # Different port to avoid conflicts
+      - "6379:6379"
     volumes:
-      - redis_dev_data:/data
+      - redis_data_dev:/data
     networks:
-      - nike_dev_network
+      - nike_network_dev
     restart: unless-stopped
 
-  # Development Application
-  app_dev:
+  # Main Application (Development)
+  app:
     build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: nike_backend_dev
     environment:
       - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=postgresql://nike_user_dev:nike_password_dev@postgres_dev:5432/nike_db_dev
+      - PORT=5001
+      - DATABASE_URL=postgresql://nike_user:nike_password@postgres:5432/nike_db_dev
       - JWT_SECRETE_KEY=dev_jwt_secret_key
-      - EMAIL=dev_email@example.com
-      - PASSWORD=dev_email_password
-      - ADMIN_EMAIL=dev_admin@example.com
-      - ADMIN_PASSWORD=dev_admin_password
-      - ADMIN_USERNAME=dev_admin
-      - CLOUDINARY_URL=your_cloudinary_url
-      - CLOUDINARY_CLOUD_NAME=your_cloud_name
-      - CLOUDINARY_API_KEY=your_api_key
-      - CLOUDINARY_API_SECRET=your_api_secret
+      - EMAIL=dev@example.com
+      - PASSWORD=dev_password
+      - ADMIN_EMAIL=admin@nike.com
+      - ADMIN_PASSWORD=admin123
+      - ADMIN_USERNAME=admin
     ports:
-      - "3001:3000"  # Different port to avoid conflicts
+      - "5001:5001"
     depends_on:
-      - postgres_dev
-      - redis_dev
+      - postgres
+      - redis
     networks:
-      - nike_dev_network
+      - nike_network_dev
     restart: unless-stopped
     volumes:
       - .:/app
@@ -64,9 +60,9 @@ services:
     command: npm run dev
 
 volumes:
-  postgres_dev_data:
-  redis_dev_data:
+  postgres_data_dev:
+  redis_data_dev:
 
 networks:
-  nike_dev_network:
+  nike_network_dev:
     driver: bridge 

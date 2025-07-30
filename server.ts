@@ -12,20 +12,27 @@ import Order from "./src/database/models/orderModel";
 import Payment from "./src/database/models/paymentModel";
 import Message from "./src/database/models/messageModel";
   import Chat from "./src/database/models/chatModel";
+import sequelize from "./src/database/connection";
 
 function startServer() {
   try {
-    const server = app.listen(envConfig.port, () => {
+    const server = app.listen(envConfig.port, async () => {
       console.log(`Server is running on port ${envConfig.port}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       
-      // Only run seeders if database is connected
+      // Wait for database sync to complete before running seeders
       if (envConfig.databaseUrl) {
         try {
-          categoryController.seedCategory();
-          superAdminSeeder(); // Run super admin seeder first
-          adminSeeder();
-          collectionController.seedCollection();
+          // Wait for database sync
+          await sequelize.sync({ force: false, alter: true });
+          console.log("Database synced successfully");
+          
+          // Now run seeders
+          await categoryController.seedCategory();
+          await superAdminSeeder(); // Run super admin seeder first
+          await adminSeeder();
+          await collectionController.seedCollection();
+          console.log("All seeders completed successfully");
         } catch (error) {
           console.error('Error running seeders:', error);
         }

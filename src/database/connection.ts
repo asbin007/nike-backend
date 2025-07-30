@@ -24,15 +24,22 @@ if (!envConfig.databaseUrl) {
   }
 }
 
+// Configure SSL based on environment
+const dialectOptions: any = {};
+if (process.env.NODE_ENV === 'production') {
+  dialectOptions.ssl = {
+    require: true,
+    rejectUnauthorized: false
+  };
+} else {
+  // Disable SSL for development
+  dialectOptions.ssl = false;
+}
+
 const sequelize = new Sequelize(envConfig.databaseUrl as string, {
   models: [__dirname + "/models"],
   logging: false, // Disable logging in production
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    }
-  }
+  dialectOptions
 });
 
 try {
@@ -48,10 +55,6 @@ try {
   console.log("Database connection failed", error);
   process.exit(1);
 }
-
-sequelize.sync({ force: false, alter: true }).then(() => {
-  console.log("Database synced successfully");
-});
 
 // category x product
 Shoe.belongsTo(Category, { foreignKey: "categoryId" });
