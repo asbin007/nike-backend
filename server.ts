@@ -1,3 +1,5 @@
+import http from 'http';
+
 // Minimal server for deployment testing
 function startServer() {
   try {
@@ -7,7 +9,6 @@ function startServer() {
     console.log(`Port: ${port}`);
     
     // Simple HTTP server for testing
-    const http = require('http');
     const server = http.createServer((req: any, res: any) => {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end('Server is running successfully!');
@@ -18,7 +19,7 @@ function startServer() {
       process.exit(1);
     });
     
-    server.listen(port, '0.0.0.0', () => {
+    server.listen(Number(port), '0.0.0.0', () => {
       console.log(`Server is running on port ${port}`);
       console.log('Minimal server started successfully!');
     });
