@@ -7,11 +7,11 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "nodemon server.ts",
+    "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
     "render-ts": "tsc && node dist/server.js",
-    "render-start": "ts-node server.ts",
+    "render-start": "node --loader ts-node/esm server.ts",
     "postinstall": "npm run build"
   },
   "keywords": [],

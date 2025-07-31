@@ -43,7 +43,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const sequelize = new Sequelize(envConfig.databaseUrl as string, {
-  models: [join(__dirname, "models")],
+  models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
   logging: false, // Disable logging in production
   dialectOptions
 });
