@@ -1,9 +1,10 @@
 services:
   - type: web
     name: nike-backend
-    env: docker
+    env: node
     plan: free
-    dockerfilePath: ./Dockerfile
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production

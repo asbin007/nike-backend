@@ -36,8 +36,8 @@
 4. **Service configuration:**
    - **Name**: `nike-backend`
    - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm run render-ts`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
    - **Plan**: Free
 
 ## Step 5: Environment Variables Set Garnu
