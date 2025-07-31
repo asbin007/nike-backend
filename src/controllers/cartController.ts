@@ -1,7 +1,7 @@
 // controllers/cartController.ts
 import { Request, Response } from "express";
-import Cart from "../database/models/cartModel";
-import Shoe from "../database/models/productModel";
+import Cart from "../database/models/cartModel.js";
+import Shoe from "../database/models/productModel.js";
 
 class CartController {
   async addToCart(req: Request, res: Response) {

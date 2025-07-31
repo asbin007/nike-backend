@@ -1,7 +1,7 @@
 import express,{ Router } from "express";
-import userMiddleware, { Role } from "../middleware/userMiddleware";
-import errorHandler from "../services/errorHandler";
-import cartController from "../controllers/cartController";
+import userMiddleware, { Role } from "../middleware/userMiddleware.js";
+import errorHandler from "../services/errorHandler.js";
+import cartController from "../controllers/cartController.js";
 
 
 const router:Router= express.Router()

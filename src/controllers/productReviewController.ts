@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import Shoe from "../database/models/productModel";
-import ProductReview from "../database/models/productReviewModal";
-import User from "../database/models/userModel";
+import Shoe from "../database/models/productModel.js";
+import ProductReview from "../database/models/productReviewModal.js";
+import User from "../database/models/userModel.js";
 
 
 

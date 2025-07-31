@@ -1,8 +1,8 @@
 import express, { Router } from "express";
-import productController from "../controllers/productController";
-import userMiddleware, { Role } from "../middleware/userMiddleware";
-import errorHandler from "../services/errorHandler";
-import { upload } from '../middleware/multer';
+import productController from "../controllers/productController.js";
+import userMiddleware, { Role } from "../middleware/userMiddleware.js";
+import errorHandler from "../services/errorHandler.js";
+import { upload } from '../middleware/multer.js';
 
 // import multer from "multer";
 const router: Router = express.Router();

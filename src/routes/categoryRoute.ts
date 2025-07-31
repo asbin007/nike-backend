@@ -1,6 +1,6 @@
 import express, { Router } from "express";
-import categoryController from "../controllers/categoryController";
-import userMiddleware, { Role } from "../middleware/userMiddleware";
+import categoryController from "../controllers/categoryController.js";
+import userMiddleware, { Role } from "../middleware/userMiddleware.js";
 const router: Router = express.Router();
 
 router

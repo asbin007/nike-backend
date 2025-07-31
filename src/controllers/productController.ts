@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import Category from "../database/models/categoryModel";
-import Shoe from "../database/models/productModel";
-import Collection from "../database/models/collectionModel";
-import { envConfig } from "../config/config";
+import Category from "../database/models/categoryModel.js";
+import Shoe from "../database/models/productModel.js";
+import Collection from "../database/models/collectionModel.js";
+import { envConfig } from "../config/config.js";
 import jwt from "jsonwebtoken";
-import Cart from "../database/models/cartModel";
-import ProductReview from "../database/models/productReviewModal";
-import User from "../database/models/userModel";
+import Cart from "../database/models/cartModel.js";
+import ProductReview from "../database/models/productReviewModal.js";
+import User from "../database/models/userModel.js";
 import { Model } from "sequelize-typescript";
 class ProductController {
      // Helper function to transform input to array of strings

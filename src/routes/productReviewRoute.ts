@@ -1,7 +1,7 @@
 import express, { Router } from "express";
-import errorHandler from "../services/errorHandler";
-import userMiddleware from "../middleware/userMiddleware";
-import productReviewController from "../controllers/productReviewController";
+import errorHandler from "../services/errorHandler.js";
+import userMiddleware from "../middleware/userMiddleware.js";
+import productReviewController from "../controllers/productReviewController.js";
 
 const router: Router = express.Router();
 

@@ -1,7 +1,7 @@
 import express from "express";
-import SuperAdminController from "../controllers/superAdminController";
-import userMiddleware, { Role } from "../middleware/userMiddleware";
-import errorHandler from "../services/errorHandler";
+import SuperAdminController from "../controllers/superAdminController.js";
+import userMiddleware, { Role } from "../middleware/userMiddleware.js";
+import errorHandler from "../services/errorHandler.js";
 
 const router = express.Router();
 

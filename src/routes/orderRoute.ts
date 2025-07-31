@@ -1,7 +1,7 @@
 import express,{ Router } from "express";
-import userMiddleware, { Role } from "../middleware/userMiddleware";
-import errorHandler from "../services/errorHandler";
-import orderController from "../controllers/orderController";
+import userMiddleware, { Role } from "../middleware/userMiddleware.js";
+import errorHandler from "../services/errorHandler.js";
+import orderController from "../controllers/orderController.js";
 
 
 const router:Router= express.Router()

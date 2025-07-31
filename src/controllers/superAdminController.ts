@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt, { Secret } from "jsonwebtoken";
-import { envConfig } from "../config/config";
-import User from "../database/models/userModel";
+import { envConfig } from "../config/config.js";
+import User from "../database/models/userModel.js";
 import otpGenerator from "otp-generator";
-import sendMail from "../services/sendMail";
+import sendMail from "../services/sendMail.js";
 
 class SuperAdminController {
   // login for super admin

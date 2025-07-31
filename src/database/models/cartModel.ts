@@ -1,6 +1,6 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
-import Shoe from "./productModel";
-import User from "./userModel";
+import Shoe from "./productModel.js";
+import User from "./userModel.js";
 
 @Table({
   tableName: "carts",

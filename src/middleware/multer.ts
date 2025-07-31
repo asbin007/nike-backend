@@ -16,7 +16,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
-import { envConfig } from '../config/config'; // adjust path if needed
+import { envConfig } from '../config/config.js'; // adjust path if needed
 
 cloudinary.config({
   cloud_name: envConfig.cloud_name,

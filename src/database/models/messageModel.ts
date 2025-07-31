@@ -1,8 +1,8 @@
 
 
 import { Table,Column,DataType,Model, BelongsTo, ForeignKey } from "sequelize-typescript";
-import User from "./userModel";
-import Chat from "./chatModel";
+import User from "./userModel.js";
+import Chat from "./chatModel.js";
 
 @Table({
     tableName:'messages',

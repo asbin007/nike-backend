@@ -1,5 +1,5 @@
 import { Table, Column, DataType, Model } from "sequelize-typescript";
-import { PaymentMethod, PaymentStatus } from "../../services/types";
+import { PaymentMethod, PaymentStatus } from "../../services/types.js";
 
 @Table({
   tableName: "payments",

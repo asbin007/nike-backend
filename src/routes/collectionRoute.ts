@@ -1,6 +1,6 @@
 import express,{ Router } from "express";
-import errorHandler from "../services/errorHandler";
-import collectionController from "../controllers/collectionController";
+import errorHandler from "../services/errorHandler.js";
+import collectionController from "../controllers/collectionController.js";
 
 
 

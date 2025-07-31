@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import Chat from "../database/models/chatModel";
-import User from "../database/models/userModel";
-import Message from "../database/models/messageModel";
-import { upload } from "../middleware/multer";
+import Chat from "../database/models/chatModel.js";
+import User from "../database/models/userModel.js";
+import Message from "../database/models/messageModel.js";
+import { upload } from "../middleware/multer.js";
 
 
 class ChatController {

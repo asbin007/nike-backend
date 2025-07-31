@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import Collection from "../database/models/collectionModel"
+import Collection from "../database/models/collectionModel.js"
 
 class CollectionController{
     collectionData = [

@@ -1,13 +1,13 @@
-import { OrderStatus } from "./../services/types";
+import { OrderStatus } from "./../services/types.js";
 import { Response, Request } from "express";
-import Payment from "../database/models/paymentModel";
-import { PaymentMethod, PaymentStatus } from "../services/types";
-import Order from "../database/models/orderModel";
-import OrderDetails from "../database/models/orderDetaills";
-import Cart from "../database/models/cartModel";
+import Payment from "../database/models/paymentModel.js";
+import { PaymentMethod, PaymentStatus } from "../services/types.js";
+import Order from "../database/models/orderModel.js";
+import OrderDetails from "../database/models/orderDetaills.js";
+import Cart from "../database/models/cartModel.js";
 import axios from "axios";
-import Shoe from "../database/models/productModel";
-import Category from "../database/models/categoryModel";
+import Shoe from "../database/models/productModel.js";
+import Category from "../database/models/categoryModel.js";
 
 
 

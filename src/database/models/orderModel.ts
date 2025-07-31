@@ -1,7 +1,7 @@
 import { Table, Column, Model, DataType, Validate, ForeignKey } from "sequelize-typescript";
-import { OrderStatus } from "../../services/types";
-import User from "./userModel";
-import Payment from "./paymentModel";
+import { OrderStatus } from "../../services/types.js";
+import User from "./userModel.js";
+import Payment from "./paymentModel.js";
 
 @Table({
   tableName: "orders",

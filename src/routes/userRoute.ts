@@ -1,7 +1,7 @@
 import express from "express";
-import UserController from "../controllers/userController";
-import userMiddleware, { Role } from "../middleware/userMiddleware";
-import errorHandler from "../services/errorHandler";
+import UserController from "../controllers/userController.js";
+import userMiddleware, { Role } from "../middleware/userMiddleware.js";
+import errorHandler from "../services/errorHandler.js";
 const router = express.Router();
 
 router.route("/register").post(UserController.register);

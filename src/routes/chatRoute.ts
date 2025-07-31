@@ -1,9 +1,9 @@
 
     import express, { Router } from "express";
-    import errorHandler from "../services/errorHandler";
-    import chatController from "../controllers/chatController";
-    import userMiddleware from "../middleware/userMiddleware";
-    import { upload } from "../middleware/multer";
+    import errorHandler from "../services/errorHandler.js";
+import chatController from "../controllers/chatController.js";
+import userMiddleware from "../middleware/userMiddleware.js";
+import { upload } from "../middleware/multer.js";
 
     const router: Router = express.Router();
 

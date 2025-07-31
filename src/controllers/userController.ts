@@ -1,12 +1,12 @@
-import { Role } from './../middleware/userMiddleware';
+import { Role } from './../middleware/userMiddleware.js';
 import otpGenerator from "otp-generator";
-import { envConfig } from "./../config/config";
+import { envConfig } from "./../config/config.js";
 import jwt, { Secret } from "jsonwebtoken";
 import { Request, Response } from "express";
-import User from "../database/models/userModel";
+import User from "../database/models/userModel.js";
 import bcrypt from "bcrypt";
-import sendMail from "../services/sendMail";
-import checkOtpExpiration from "../services/optExpiration";
+import sendMail from "../services/sendMail.js";
+import checkOtpExpiration from "../services/optExpiration.js";
 
 class UserController {
   static async register(req: Request, res: Response): Promise<void> {
