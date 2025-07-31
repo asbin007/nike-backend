@@ -15,17 +15,18 @@ function startServer() {
       console.log(`Server is running on port ${envConfig.port}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       
-      // Wait for database sync to complete
-      if (envConfig.databaseUrl) {
-        try {
-          await sequelize.sync({ force: false, alter: true });
-          console.log("Database synced successfully");
-        } catch (error) {
-          console.error('Error syncing database:', error);
-        }
-      } else {
-        console.log('Skipping database sync - no database connection');
-      }
+      // Temporarily disable database sync for deployment
+      console.log('Database sync temporarily disabled for deployment');
+      // if (envConfig.databaseUrl) {
+      //   try {
+      //     await sequelize.sync({ force: false, alter: true });
+      //     console.log("Database synced successfully");
+      //   } catch (error) {
+      //     console.error('Error syncing database:', error);
+      //   }
+      // } else {
+      //   console.log('Skipping database sync - no database connection');
+      // }
     });
 
     const io = new Server(server, {
