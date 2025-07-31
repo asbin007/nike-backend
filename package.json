@@ -14,7 +14,8 @@
     "render-start": "node --loader ts-node/esm --experimental-specifier-resolution=node --experimental-decorators server.ts",
     "postinstall": "npm run build",
     "render-build": "npm install && npm run build",
-    "render-start-cmd": "node dist/server.js"
+    "render-start-cmd": "node dist/server.js",
+    "render-deploy": "npm run build && node dist/server.js"
   },
   "keywords": [],
   "author": "",
