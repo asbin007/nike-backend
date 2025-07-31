@@ -48,21 +48,19 @@ const sequelize = new Sequelize(envConfig.databaseUrl as string, {
   dialectOptions
 });
 
-// Temporarily disable database authentication for deployment
-console.log("Database authentication temporarily disabled for deployment");
-// try {
-//   sequelize
-//     .authenticate()
-//     .then(() => {
-//       console.log("Database connected successfully");
-//     })
-//     .catch((error) => {
-//       console.log("Database connection failed", error);
-//     });
-// } catch (error) {
-//   console.log("Database connection failed", error);
-//   process.exit(1);
-// }
+try {
+  sequelize
+    .authenticate()
+    .then(() => {
+      console.log("Database connected successfully");
+    })
+    .catch((error) => {
+      console.log("Database connection failed", error);
+    });
+} catch (error) {
+  console.log("Database connection failed", error);
+  process.exit(1);
+}
 
 // category x product
 Shoe.belongsTo(Category, { foreignKey: "categoryId" });
