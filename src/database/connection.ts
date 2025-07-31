@@ -1,5 +1,7 @@
 import { Sequelize } from "sequelize-typescript";
 import { envConfig } from "../config/config.js";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import Category from "./models/categoryModel.js";
 import ProductReview from "./models/productReviewModal.js";
 import Shoe from "./models/productModel.js";
@@ -11,6 +13,10 @@ import Payment from "./models/paymentModel.js";
 import OrderDetails from "./models/orderDetaills.js"; 
 import Chat from "./models/chatModel.js";
 import Message from "./models/messageModel.js";
+
+// ES Module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Check if database URL exists
 if (!envConfig.databaseUrl) {
@@ -37,7 +43,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const sequelize = new Sequelize(envConfig.databaseUrl as string, {
-  models: [__dirname + "/models"],
+  models: [join(__dirname, "models")],
   logging: false, // Disable logging in production
   dialectOptions
 });

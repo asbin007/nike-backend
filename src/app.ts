@@ -44,6 +44,23 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Root endpoint for easy testing
+app.get("/", (req, res) => {
+  res.status(200).json({ 
+    message: "Welcome to Nike Backend API!",
+    version: "1.0.0",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    endpoints: {
+      health: "/api/health",
+      auth: "/api/auth",
+      products: "/api/product",
+      categories: "/api/category",
+      orders: "/api/order"
+    }
+  });
+});
+
 app.use("/api/auth", userRoute);
 app.use("/api/super-admin", superAdminRoute);
 app.use("/api/category", categoryRoute);
