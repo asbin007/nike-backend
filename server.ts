@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import adminSeeder from "./src/adminSeeder.js";
+// import adminSeeder from "./src/adminSeeder.js";
 import superAdminSeeder from "./src/superAdminSeeder.js";
 import app from "./src/app.js";
 import { envConfig } from "./src/config/config.js";
@@ -30,7 +30,7 @@ function startServer() {
           // Now run seeders
           await categoryController.seedCategory();
           await superAdminSeeder(); // Run super admin seeder first
-          await adminSeeder();
+          // await adminSeeder();
           await collectionController.seedCollection();
           console.log("All seeders completed successfully");
         } catch (error) {
