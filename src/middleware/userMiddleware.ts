@@ -29,7 +29,7 @@ class UserMiddleware {
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    // receive token
+    // receive tokenpc
     const token = req.headers.authorization;
     if (!token) {
       res.status(403).json({
