@@ -11,22 +11,13 @@ import sequelize from "./src/database/connection.js";
 
 function startServer() {
   try {
-    const server = app.listen(envConfig.port, async () => {
+    console.log('Starting server...');
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Port: ${envConfig.port}`);
+    
+    const server = app.listen(envConfig.port, () => {
       console.log(`Server is running on port ${envConfig.port}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      
-      // Temporarily disable database sync for deployment
       console.log('Database sync temporarily disabled for deployment');
-      // if (envConfig.databaseUrl) {
-      //   try {
-      //     await sequelize.sync({ force: false, alter: true });
-      //     console.log("Database synced successfully");
-      //   } catch (error) {
-      //     console.error('Error syncing database:', error);
-      //   }
-      // } else {
-      //   console.log('Skipping database sync - no database connection');
-      // }
     });
 
     const io = new Server(server, {
