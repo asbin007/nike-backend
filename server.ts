@@ -12,7 +12,7 @@ function startServer() {
       res.end('Server is running successfully!');
     });
     
-    server.listen(process.env.PORT || 5001, () => {
+    server.listen(process.env.PORT || 5001, '0.0.0.0', () => {
       console.log(`Server is running on port ${process.env.PORT || 5001}`);
       console.log('Minimal server started successfully!');
     });
