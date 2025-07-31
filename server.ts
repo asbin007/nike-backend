@@ -1,18 +1,18 @@
 import jwt from "jsonwebtoken";
-import adminSeeder from "./src/adminSeeder";
-import superAdminSeeder from "./src/superAdminSeeder";
-import app from "./src/app";
-import { envConfig } from "./src/config/config";
-import categoryController from "./src/controllers/categoryController";
-import collectionController from "./src/controllers/collectionController";
+import adminSeeder from "./src/adminSeeder.js";
+import superAdminSeeder from "./src/superAdminSeeder.js";
+import app from "./src/app.js";
+import { envConfig } from "./src/config/config.js";
+import categoryController from "./src/controllers/categoryController.js";
+import collectionController from "./src/controllers/collectionController.js";
 
 import { Server, Socket } from "socket.io";
-import User from "./src/database/models/userModel";
-import Order from "./src/database/models/orderModel";
-import Payment from "./src/database/models/paymentModel";
-import Message from "./src/database/models/messageModel";
-import Chat from "./src/database/models/chatModel";
-import sequelize from "./src/database/connection";
+import User from "./src/database/models/userModel.js";
+import Order from "./src/database/models/orderModel.js";
+import Payment from "./src/database/models/paymentModel.js";
+import Message from "./src/database/models/messageModel.js";
+import Chat from "./src/database/models/chatModel.js";
+import sequelize from "./src/database/connection.js";
 
 function startServer() {
   try {
