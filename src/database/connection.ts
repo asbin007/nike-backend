@@ -1,18 +1,18 @@
 import { Sequelize } from "sequelize-typescript";
-import { envConfig } from "../config/config.js";
+import { envConfig } from "../config/config.ts";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import Category from "./models/categoryModel.js";
-import ProductReview from "./models/productReviewModal.js";
-import Shoe from "./models/productModel.js";
-import User from "./models/userModel.js";
-import Collection from "./models/collectionModel.js";
-import Cart from "./models/cartModel.js";
-import Order from "./models/orderModel.js";
-import Payment from "./models/paymentModel.js";
-import OrderDetails from "./models/orderDetaills.js"; 
-import Chat from "./models/chatModel.js";
-import Message from "./models/messageModel.js";
+import Category from "./models/categoryModel.ts";
+import ProductReview from "./models/productReviewModal.ts";
+import Shoe from "./models/productModel.ts";
+import User from "./models/userModel.ts";
+import Collection from "./models/collectionModel.ts";
+import Cart from "./models/cartModel.ts";
+import Order from "./models/orderModel.ts";
+import Payment from "./models/paymentModel.ts";
+import OrderDetails from "./models/orderDetaills.ts"; 
+import Chat from "./models/chatModel.ts";
+import Message from "./models/messageModel.ts";
 
 // ES Module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);

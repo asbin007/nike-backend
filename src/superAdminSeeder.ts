@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
-import { envConfig } from './config/config.js';
-import User from "./database/models/userModel.js";
+import { envConfig } from './config/config.ts';
+import User from "./database/models/userModel.ts";
 
 // this function creates the first super admin if it doesn't exist
 const superAdminSeeder = async () => {
