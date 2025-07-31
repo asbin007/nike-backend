@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 // import adminSeeder from "./src/adminSeeder.js";
-import superAdminSeeder from "./src/superAdminSeeder.js";
+// import superAdminSeeder from "./src/superAdminSeeder.js";
 import app from "./src/app.js";
 import { envConfig } from "./src/config/config.js";
-import categoryController from "./src/controllers/categoryController.js";
-import collectionController from "./src/controllers/collectionController.js";
+// import categoryController from "./src/controllers/categoryController.js";
+// import collectionController from "./src/controllers/collectionController.js";
 
 import { Server, Socket } from "socket.io";
 import User from "./src/database/models/userModel.js";
@@ -28,10 +28,10 @@ function startServer() {
           console.log("Database synced successfully");
           
           // Now run seeders
-          await categoryController.seedCategory();
-          await superAdminSeeder(); // Run super admin seeder first
+          // await categoryController.seedCategory();
+          // await superAdminSeeder(); // Run super admin seeder first
           // await adminSeeder();
-          await collectionController.seedCollection();
+          // await collectionController.seedCollection();
           console.log("All seeders completed successfully");
         } catch (error) {
           console.error('Error running seeders:', error);
