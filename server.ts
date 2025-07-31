@@ -11,7 +11,7 @@ import User from "./src/database/models/userModel";
 import Order from "./src/database/models/orderModel";
 import Payment from "./src/database/models/paymentModel";
 import Message from "./src/database/models/messageModel";
-  import Chat from "./src/database/models/chatModel";
+import Chat from "./src/database/models/chatModel";
 import sequelize from "./src/database/connection";
 
 function startServer() {
