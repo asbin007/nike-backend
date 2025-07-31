@@ -37,7 +37,7 @@
    - **Name**: `nike-backend`
    - **Environment**: `Node`
    - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm start`
+   - **Start Command**: `node dist/server.js`
    - **Plan**: Free
 
 ## Step 5: Environment Variables Set Garnu
