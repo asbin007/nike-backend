@@ -1,4 +1,4 @@
-import { envConfig } from "./src/config/config.js";
+// import { envConfig } from "./src/config/config.js";
 import app from "./src/app.js";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
@@ -11,12 +11,12 @@ import sequelize from "./src/database/connection.js";
 
 function startServer() {
   try {
-    const server = app.listen(envConfig.port, async () => {
-      console.log(`Server is running on port ${envConfig.port}`);
+    const server = app.listen(process.env.PORT || 5001, async () => {
+      console.log(`Server is running on port ${process.env.PORT || 5001}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       
       // Wait for database sync to complete
-      if (envConfig.databaseUrl) {
+      if (process.env.DATABASE_URL) {
         try {
           await sequelize.sync({ force: false, alter: true });
           console.log("Database synced successfully");
@@ -56,7 +56,7 @@ function startServer() {
       if (token) {
         jwt.verify(
           token as string,
-          envConfig.jwtSecret as string,
+          process.env.JWT_SECRETE_KEY as string,
           async (err: any, result: any) => {
             if (err) {
               socket.emit("error", err);
