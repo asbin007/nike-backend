@@ -13,6 +13,11 @@ function startServer() {
       res.end('Server is running successfully!');
     });
     
+    server.on('error', (error: any) => {
+      console.error('Server error:', error);
+      process.exit(1);
+    });
+    
     server.listen(port, '0.0.0.0', () => {
       console.log(`Server is running on port ${port}`);
       console.log('Minimal server started successfully!');
