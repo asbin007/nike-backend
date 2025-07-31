@@ -32,8 +32,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies (without postinstall script)
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+# Install only production dependencies and rebuild bcrypt
+RUN npm ci --only=production --ignore-scripts && \
+    npm rebuild bcrypt --build-from-source && \
+    npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
