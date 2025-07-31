@@ -3,7 +3,8 @@ function startServer() {
   try {
     console.log('Starting minimal server...');
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Port: ${process.env.PORT || 5001}`);
+    const port = process.env.PORT || 10000;
+    console.log(`Port: ${port}`);
     
     // Simple HTTP server for testing
     const http = require('http');
@@ -12,8 +13,8 @@ function startServer() {
       res.end('Server is running successfully!');
     });
     
-    server.listen(process.env.PORT || 5001, '0.0.0.0', () => {
-      console.log(`Server is running on port ${process.env.PORT || 5001}`);
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`Server is running on port ${port}`);
       console.log('Minimal server started successfully!');
     });
 
