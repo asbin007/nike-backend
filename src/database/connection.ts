@@ -150,7 +150,12 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
       native: false,
       prepare: false,
       // Force IPv4
-      family: 4
+      family: 4,
+      // Additional IPv4 settings
+      lookup: (hostname: string, options: any, callback: any) => {
+        // Force IPv4 lookup
+        require('dns').lookup(hostname, { family: 4 }, callback);
+      }
     },
     pool: {
       max: 1,
