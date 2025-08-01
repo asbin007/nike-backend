@@ -96,6 +96,12 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && !databaseUrl.i
   console.log('Added pgbouncer=true to pooler DATABASE_URL');
 }
 
+// Try different pooler port if IPv6 issue persists
+if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && databaseUrl.includes(':5432/')) {
+  databaseUrl = databaseUrl.replace(':5432/', ':6543/');
+  console.log('Changed pooler port from 5432 to 6543');
+}
+
 // URL encode the username if it contains special characters
 if (databaseUrl && databaseUrl.includes('postgres.kynslinvksgdxltlxgxl')) {
   const encodedUsername = encodeURIComponent('postgres.kynslinvksgdxltlxgxl');
@@ -137,7 +143,7 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com')) {
 if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) {
   console.log('Using direct connection with simple config');
   
-  // Create Sequelize instance for direct connection
+  // Create Sequelize instance for direct connection with IPv4 address
   sequelize = new Sequelize(databaseUrl, {
     models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
     logging: false,
@@ -146,8 +152,12 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
         require: true,
         rejectUnauthorized: false
       },
-      // Force IPv4
-      family: 4
+      // Force IPv4 and use custom lookup
+      family: 4,
+      lookup: (hostname: string, options: any, callback: any) => {
+        // Force IPv4 lookup
+        require('dns').lookup(hostname, { family: 4 }, callback);
+      }
     },
     pool: {
       max: 1,
@@ -156,7 +166,7 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
       idle: 10000
     }
   });
-  console.log('Created Sequelize instance for direct connection');
+  console.log('Created Sequelize instance for direct connection with IPv4 forcing');
 }
 
 // Debug logging to see the exact values
