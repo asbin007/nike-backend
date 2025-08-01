@@ -90,10 +90,10 @@ let databaseUrl = envConfig.databaseUrl as string;
 let isPoolerConnection = false; // Flag to track if we're using pooler
 let sequelize: Sequelize; // Declare sequelize variable early
 
-// Add pgbouncer=true parameter for Supabase connection pooling (only for pooler connections)
-if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && !databaseUrl.includes('pgbouncer=true')) {
-  databaseUrl += '?pgbouncer=true';
-  console.log('Added pgbouncer=true to pooler DATABASE_URL');
+// Remove pgbouncer=true parameter for Supabase connection pooling
+if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && databaseUrl.includes('pgbouncer=true')) {
+  databaseUrl = databaseUrl.replace('?pgbouncer=true', '');
+  console.log('Removed pgbouncer=true from pooler DATABASE_URL');
 }
 
 // Try session pooler (port 5432) instead of transaction pooler (port 6543)
