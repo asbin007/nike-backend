@@ -6,7 +6,6 @@ import User from "../database/models/userModel.js";
 export enum Role {
   Admin = "admin",
   Customer = "customer",
-  SuperAdmin = "super_admin",
 }
 
 // Extend Express Request interface globally

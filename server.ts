@@ -248,7 +248,7 @@ function startServer() {
   }
 }
 
-// For production deployment (Render/Vercel)
+// For production deployment
 startServer();
 
 // Export for serverless deployment
