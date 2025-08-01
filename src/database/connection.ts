@@ -139,24 +139,22 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com')) {
   console.log('Created Sequelize instance for pooler connection with SASL fix');
 }
 
-// For direct connections, use simple configuration
+// For direct connections, use manual IPv4 address
 if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) {
-  console.log('Using direct connection with simple config');
+  console.log('Using direct connection with manual IPv4 address');
+  
+  // Replace hostname with IPv4 address
+  const ipv4DatabaseUrl = databaseUrl.replace('db.kynslinvksgdxltlxgxl.supabase.co', '13.250.162.242');
+  console.log('Using IPv4 address: 13.250.162.242');
   
   // Create Sequelize instance for direct connection with IPv4 address
-  sequelize = new Sequelize(databaseUrl, {
+  sequelize = new Sequelize(ipv4DatabaseUrl, {
     models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
     logging: false,
     dialectOptions: {
       ssl: {
         require: true,
         rejectUnauthorized: false
-      },
-      // Force IPv4 and use custom lookup
-      family: 4,
-      lookup: (hostname: string, options: any, callback: any) => {
-        // Force IPv4 lookup
-        require('dns').lookup(hostname, { family: 4 }, callback);
       }
     },
     pool: {
@@ -166,7 +164,7 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
       idle: 10000
     }
   });
-  console.log('Created Sequelize instance for direct connection with IPv4 forcing');
+  console.log('Created Sequelize instance for direct connection with manual IPv4');
 }
 
 // Debug logging to see the exact values
