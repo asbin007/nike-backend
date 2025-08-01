@@ -96,10 +96,10 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && !databaseUrl.i
   console.log('Added pgbouncer=true to pooler DATABASE_URL');
 }
 
-// Try different pooler port if IPv6 issue persists
-if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && databaseUrl.includes(':5432/')) {
-  databaseUrl = databaseUrl.replace(':5432/', ':6543/');
-  console.log('Changed pooler port from 5432 to 6543');
+// Try session pooler (port 5432) instead of transaction pooler (port 6543)
+if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && databaseUrl.includes(':6543/')) {
+  databaseUrl = databaseUrl.replace(':6543/', ':5432/');
+  console.log('Changed pooler port from 6543 to 5432 (session pooler)');
 }
 
 // URL encode the username if it contains special characters
