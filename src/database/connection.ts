@@ -129,11 +129,11 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com')) {
   console.log('Created Sequelize instance for pooler connection with minimal config');
 }
 
-// For direct connections, force IPv4
+// For direct connections, use simple configuration
 if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) {
-  console.log('Using direct connection - forcing IPv4');
+  console.log('Using direct connection with simple config');
   
-  // Create Sequelize instance for direct connection with IPv4
+  // Create Sequelize instance for direct connection
   sequelize = new Sequelize(databaseUrl, {
     models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
     logging: false,
@@ -141,15 +141,6 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
       ssl: {
         require: true,
         rejectUnauthorized: false
-      },
-      native: false,
-      prepare: false,
-      // Force IPv4
-      family: 4,
-      // Additional IPv4 settings
-      lookup: (hostname: string, options: any, callback: any) => {
-        // Force IPv4 lookup
-        require('dns').lookup(hostname, { family: 4 }, callback);
       }
     },
     pool: {
@@ -157,13 +148,9 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
       min: 0,
       acquire: 30000,
       idle: 10000
-    },
-    retry: {
-      max: 3,
-      timeout: 10000
     }
   });
-  console.log('Created Sequelize instance for direct connection with IPv4');
+  console.log('Created Sequelize instance for direct connection');
 }
 
 // Debug logging to see the exact values
