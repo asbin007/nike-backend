@@ -102,11 +102,9 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && databaseUrl.in
   console.log('Changed pooler port from 6543 to 5432 (session pooler)');
 }
 
-// URL encode the username if it contains special characters
+// Don't URL encode the username - use as is
 if (databaseUrl && databaseUrl.includes('postgres.kynslinvksgdxltlxgxl')) {
-  const encodedUsername = encodeURIComponent('postgres.kynslinvksgdxltlxgxl');
-  databaseUrl = databaseUrl.replace('postgres.kynslinvksgdxltlxgxl', encodedUsername);
-  console.log('URL encoded username:', encodedUsername);
+  console.log('Using username as is: postgres.kynslinvksgdxltlxgxl');
 }
 
 // For pooler connections, use connection string directly instead of parsing
