@@ -108,7 +108,7 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com')) {
   console.log('Using pooler connection - connecting directly with connection string');
   isPoolerConnection = true;
   
-  // Create Sequelize instance for pooler connection with simplified SSL config
+  // Create Sequelize instance for pooler connection with minimal config
   sequelize = new Sequelize(databaseUrl, {
     models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
     logging: false,
@@ -117,21 +117,16 @@ if (databaseUrl && databaseUrl.includes('pooler.supabase.com')) {
         require: true,
         rejectUnauthorized: false
       },
-      native: false,
-      prepare: false
+      native: false
     },
     pool: {
       max: 1,
       min: 0,
       acquire: 30000,
       idle: 10000
-    },
-    retry: {
-      max: 3,
-      timeout: 10000
     }
   });
-  console.log('Created Sequelize instance for pooler connection with simplified config');
+  console.log('Created Sequelize instance for pooler connection with minimal config');
 }
 
 // For direct connections, force IPv4
