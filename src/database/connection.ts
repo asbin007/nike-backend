@@ -149,16 +149,11 @@ if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) 
       },
       native: false,
       prepare: false,
-      statement_timeout: 60000,
-      idle_in_transaction_session_timeout: 60000,
-      connectionTimeoutMillis: 30000,
-      query_timeout: 60000,
-      application_name: 'nike-backend',
       // Force IPv4
       family: 4
     },
     pool: {
-      max: 5,
+      max: 1,
       min: 0,
       acquire: 30000,
       idle: 10000
