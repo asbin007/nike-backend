@@ -55,6 +55,11 @@ if (envConfig.databaseUrl && envConfig.databaseUrl.includes('supabase.co')) {
   dialectOptions.connectionTimeoutMillis = 30000;
   dialectOptions.query_timeout = 60000;
   dialectOptions.application_name = 'nike-backend';
+  
+  // SASL authentication fix
+  dialectOptions.sasl = {
+    mechanism: 'SCRAM-SHA-256'
+  };
 } else if (envConfig.databaseUrl && envConfig.databaseUrl.includes('render.com')) {
     dialectOptions.ssl = {
       require: true,
@@ -82,11 +87,101 @@ if (envConfig.databaseUrl && envConfig.databaseUrl.includes('supabase.co')) {
 
 // Use DATABASE_URL directly without any parsing to preserve case sensitivity
 let databaseUrl = envConfig.databaseUrl as string;
+let isPoolerConnection = false; // Flag to track if we're using pooler
+let sequelize: Sequelize; // Declare sequelize variable early
+
+// Add pgbouncer=true parameter for Supabase connection pooling (only for pooler connections)
+if (databaseUrl && databaseUrl.includes('pooler.supabase.com') && !databaseUrl.includes('pgbouncer=true')) {
+  databaseUrl += '?pgbouncer=true';
+  console.log('Added pgbouncer=true to pooler DATABASE_URL');
+}
+
+// URL encode the username if it contains special characters
+if (databaseUrl && databaseUrl.includes('postgres.kynslinvksgdxltlxgxl')) {
+  const encodedUsername = encodeURIComponent('postgres.kynslinvksgdxltlxgxl');
+  databaseUrl = databaseUrl.replace('postgres.kynslinvksgdxltlxgxl', encodedUsername);
+  console.log('URL encoded username:', encodedUsername);
+}
+
+// For pooler connections, use connection string directly instead of parsing
+if (databaseUrl && databaseUrl.includes('pooler.supabase.com')) {
+  console.log('Using pooler connection - connecting directly with connection string');
+  isPoolerConnection = true;
+  
+  // Create Sequelize instance for pooler connection
+  sequelize = new Sequelize(databaseUrl, {
+    models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      },
+      native: false,
+      prepare: false,
+      statement_timeout: 60000,
+      idle_in_transaction_session_timeout: 60000,
+      connectionTimeoutMillis: 30000,
+      query_timeout: 60000,
+      application_name: 'nike-backend'
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      max: 3,
+      timeout: 10000
+    }
+  });
+  console.log('Created Sequelize instance for pooler connection');
+}
+
+// For direct connections, force IPv4
+if (databaseUrl && databaseUrl.includes('db.kynslinvksgdxltlxgxl.supabase.co')) {
+  console.log('Using direct connection - forcing IPv4');
+  
+  // Create Sequelize instance for direct connection with IPv4
+  sequelize = new Sequelize(databaseUrl, {
+    models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      },
+      native: false,
+      prepare: false,
+      statement_timeout: 60000,
+      idle_in_transaction_session_timeout: 60000,
+      connectionTimeoutMillis: 30000,
+      query_timeout: 60000,
+      application_name: 'nike-backend',
+      // Force IPv4
+      family: 4
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      max: 3,
+      timeout: 10000
+    }
+  });
+  console.log('Created Sequelize instance for direct connection with IPv4');
+}
 
 // Debug logging to see the exact values
 console.log('Raw DATABASE_URL from envConfig:', envConfig.databaseUrl);
 console.log('Raw DATABASE_URL from process.env:', process.env.DATABASE_URL);
 console.log('Database URL being used:', databaseUrl);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Environment check - Production:', process.env.NODE_ENV === 'production');
 
 // Try to fix the hostname case sensitivity issue by manually reconstructing the URL
 if (databaseUrl && databaseUrl.includes('supabase.co')) {
@@ -132,7 +227,6 @@ if (databaseUrl && process.env.NODE_ENV === 'production') {
 }
 
 // Use the database URL directly with case-sensitive reconstruction
-let sequelize: Sequelize;
 let finalDatabaseUrl = databaseUrl; // Make this accessible to connectDatabase function
 
 console.log('Checking if database URL contains supabase.co...');
@@ -143,7 +237,7 @@ if (databaseUrl && databaseUrl.includes('supabase.co')) {
   try {
     console.log('Attempting to parse Supabase connection string...');
     
-    // Extract connection parameters manually to preserve case
+    // Extract connection parameters manually to preserve case - handle both direct and pooler URLs
     const urlMatch = databaseUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
     console.log('URL match result:', urlMatch);
     
