@@ -33,34 +33,297 @@ if (!envConfig.databaseUrl) {
 // Configure SSL based on environment
 const dialectOptions: any = {};
 if (process.env.NODE_ENV === 'production') {
+  // Supabase specific configuration
+if (envConfig.databaseUrl && envConfig.databaseUrl.includes('supabase.co')) {
   dialectOptions.ssl = {
     require: true,
     rejectUnauthorized: false
   };
+  // Disable native for Supabase to avoid SASL issues
+  dialectOptions.native = false;
+  
+  // Additional Supabase specific settings
+  dialectOptions.keepAlive = true;
+  dialectOptions.keepAliveInitialDelayMillis = 10000;
+  
+  // Fix for SASL authentication issues
+  dialectOptions.prepare = false;
+  dialectOptions.statement_timeout = 60000;
+  dialectOptions.idle_in_transaction_session_timeout = 60000;
+  
+  // Additional settings to fix SASL issues
+  dialectOptions.connectionTimeoutMillis = 30000;
+  dialectOptions.query_timeout = 60000;
+  dialectOptions.application_name = 'nike-backend';
+} else if (envConfig.databaseUrl && envConfig.databaseUrl.includes('render.com')) {
+    dialectOptions.ssl = {
+      require: true,
+      rejectUnauthorized: false
+    };
+    dialectOptions.native = true;
+  } else if (envConfig.databaseUrl && envConfig.databaseUrl.includes('heroku.com')) {
+    dialectOptions.ssl = {
+      require: true,
+      rejectUnauthorized: false
+    };
+    dialectOptions.native = true;
+  } else {
+    // Default production SSL configuration
+    dialectOptions.ssl = {
+      require: true,
+      rejectUnauthorized: false
+    };
+    dialectOptions.native = true;
+  }
 } else {
   // Disable SSL for development
   dialectOptions.ssl = false;
 }
 
-const sequelize = new Sequelize(envConfig.databaseUrl as string, {
-  models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
-  logging: false, // Disable logging in production
-  dialectOptions
-});
+// Use DATABASE_URL directly without any parsing to preserve case sensitivity
+let databaseUrl = envConfig.databaseUrl as string;
 
-try {
-  sequelize
-    .authenticate()
-    .then(() => {
-      console.log("Database connected successfully");
-    })
-    .catch((error) => {
-      console.log("Database connection failed", error);
-    });
-} catch (error) {
-  console.log("Database connection failed", error);
-  process.exit(1);
+// Debug logging to see the exact values
+console.log('Raw DATABASE_URL from envConfig:', envConfig.databaseUrl);
+console.log('Raw DATABASE_URL from process.env:', process.env.DATABASE_URL);
+console.log('Database URL being used:', databaseUrl);
+
+// Try to fix the hostname case sensitivity issue by manually reconstructing the URL
+if (databaseUrl && databaseUrl.includes('supabase.co')) {
+  try {
+    // Extract hostname manually without using URL constructor to preserve case
+    const hostnameMatch = databaseUrl.match(/@([^:]+):/);
+    if (hostnameMatch) {
+      const extractedHostname = hostnameMatch[1];
+      console.log('Extracted hostname manually:', extractedHostname);
+      
+      // Check if the extracted hostname has uppercase letters
+      if (extractedHostname !== extractedHostname.toLowerCase()) {
+        console.log('Detected case-sensitive hostname, attempting to preserve case...');
+        
+        // Parse the URL to get other components
+        const url = new URL(databaseUrl);
+        
+        // Reconstruct the URL with the case-sensitive hostname
+        const reconstructedUrl = `postgresql://${url.username}:${url.password}@${extractedHostname}:${url.port}${url.pathname}`;
+        console.log('Reconstructed URL:', reconstructedUrl.replace(url.password, '***'));
+        
+        databaseUrl = reconstructedUrl;
+      } else {
+        console.log('Hostname is already lowercase, no reconstruction needed');
+      }
+    }
+  } catch (error) {
+    console.error('Error reconstructing URL:', error);
+  }
 }
+
+// Log the original URL for debugging (without password)
+if (databaseUrl && process.env.NODE_ENV === 'production') {
+  try {
+    const debugUrl = new URL(databaseUrl);
+    const originalHostname = debugUrl.hostname;
+    debugUrl.password = '***';
+    console.log('Using DATABASE_URL with hostname:', originalHostname);
+    console.log('Full DATABASE_URL (without password):', debugUrl.toString());
+  } catch (error) {
+    console.error('Could not parse DATABASE_URL for logging:', error);
+  }
+}
+
+// Use the database URL directly with case-sensitive reconstruction
+let sequelize: Sequelize;
+let finalDatabaseUrl = databaseUrl; // Make this accessible to connectDatabase function
+
+console.log('Checking if database URL contains supabase.co...');
+console.log('Database URL contains supabase.co:', databaseUrl.includes('supabase.co'));
+
+// For Supabase, use individual parameters to preserve case sensitivity
+if (databaseUrl && databaseUrl.includes('supabase.co')) {
+  try {
+    console.log('Attempting to parse Supabase connection string...');
+    
+    // Extract connection parameters manually to preserve case
+    const urlMatch = databaseUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+    console.log('URL match result:', urlMatch);
+    
+    if (urlMatch) {
+      const [, username, password, hostname, port, database] = urlMatch;
+      console.log('Extracted connection parameters:');
+      console.log('Hostname:', hostname);
+      console.log('Port:', port);
+      console.log('Database:', database);
+      console.log('Username:', username);
+      
+              // Create Sequelize with individual parameters - use extracted hostname to preserve case
+        console.log('Using extracted hostname:', hostname);
+        
+        sequelize = new Sequelize({
+          dialect: 'postgres',
+          host: hostname,
+          port: parseInt(port),
+          database: database,
+          username: username,
+          password: password,
+          models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+          logging: false,
+          dialectOptions,
+          pool: {
+            max: 5,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
+          },
+          retry: {
+            max: 3,
+            timeout: 10000
+          }
+        });
+        
+        console.log('Created Sequelize instance with hardcoded hostname');
+    } else {
+      console.log('Regex failed to match, trying alternative parsing...');
+      
+      // Alternative parsing method
+      const parts = databaseUrl.split('@');
+      if (parts.length === 2) {
+        const credentials = parts[0].replace('postgresql://', '');
+        const hostAndDb = parts[1];
+        
+        const [username, password] = credentials.split(':');
+        const [hostPort, database] = hostAndDb.split('/');
+        const [hostname, port] = hostPort.split(':');
+        
+        console.log('Alternative parsing results:');
+        console.log('Hostname:', hostname);
+        console.log('Port:', port);
+        console.log('Database:', database);
+        console.log('Username:', username);
+        
+        // Create Sequelize with individual parameters - use extracted hostname to preserve case
+        console.log('Using extracted hostname (alternative parsing):', hostname);
+        
+        sequelize = new Sequelize({
+          dialect: 'postgres',
+          host: hostname,
+          port: parseInt(port),
+          database: database,
+          username: username,
+          password: password,
+          models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+          logging: false,
+          dialectOptions,
+          pool: {
+            max: 5,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
+          },
+          retry: {
+            max: 3,
+            timeout: 10000
+          }
+        });
+        
+        console.log('Created Sequelize instance with hardcoded hostname (alternative parsing)');
+      } else {
+        throw new Error('Could not parse connection string with alternative method');
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing connection string:', error);
+    // Fallback to connection string method
+    sequelize = new Sequelize(databaseUrl, {
+      models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+      logging: false,
+      dialectOptions,
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      },
+      retry: {
+        max: 3,
+        timeout: 10000
+      }
+    });
+  }
+} else {
+  // Use the reconstructed URL directly for non-Supabase databases
+  sequelize = new Sequelize(databaseUrl, {
+    models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+    logging: false,
+    dialectOptions,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      max: 3,
+      timeout: 10000
+    }
+  });
+}
+
+// Database connection with better error handling
+const connectDatabase = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log("Database connected successfully");
+    return true;
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    
+    // Check if it's a SASL authentication error
+    if (error instanceof Error && error.message.includes('SASL')) {
+      console.error("SASL authentication error detected. This might be due to SSL configuration.");
+      console.error("Trying alternative connection method...");
+      
+      // Try with different SSL settings
+      try {
+        const alternativeSequelize = new Sequelize(finalDatabaseUrl, {
+          models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
+          logging: false,
+          dialectOptions: {
+            ssl: {
+              require: true,
+              rejectUnauthorized: false
+            },
+            native: false,
+            prepare: false
+          },
+          pool: {
+            max: 1,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
+          }
+        });
+        
+        await alternativeSequelize.authenticate();
+        console.log("Database connected successfully with alternative settings");
+        return true;
+      } catch (altError) {
+        console.error("Alternative connection also failed:", altError);
+      }
+    }
+    
+    // In production, don't exit immediately, let the app start
+    if (process.env.NODE_ENV === 'production') {
+      console.log("Continuing without database connection...");
+      return false;
+    } else {
+      console.error("Exiting due to database connection failure in development");
+      process.exit(1);
+    }
+  }
+};
+
+// Initialize database connection
+connectDatabase();
 
 // category x product
 Shoe.belongsTo(Category, { foreignKey: "categoryId" });

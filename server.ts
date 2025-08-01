@@ -23,10 +23,22 @@ function startServer() {
       // Wait for database sync to complete
       if (envConfig.databaseUrl) {
         try {
-          await sequelize.sync({ force: false, alter: true });
+          // First try to authenticate
+          await sequelize.authenticate();
+          console.log("Database connection verified");
+          
+          // Then sync the database - use force: false and alter: false for production
+          await sequelize.sync({ force: false, alter: false });
           console.log("Database synced successfully");
         } catch (error) {
           console.error('Error syncing database:', error);
+          
+          // In production, continue without database sync
+          if (process.env.NODE_ENV === 'production') {
+            console.log('Continuing without database sync in production...');
+          } else {
+            throw error; // Re-throw in development
+          }
         }
       } else {
         console.log('Skipping database sync - no database connection');
