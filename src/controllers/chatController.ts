@@ -18,7 +18,7 @@ class ChatController {
       return;
     }
 
-    // Check if admin exists
+    // Check if admin exists or not 
     const admin = await User.findOne({ where: { id: adminId, role: 'admin' } });
     if (!admin) {
       res.status(404).json({
@@ -57,7 +57,7 @@ class ChatController {
       return;
     }
 
-    // Verify user has access to this chat
+    // Verify user has access to this chat or not
     const chat = await Chat.findOne({
       where: { 
         id: chatId,
