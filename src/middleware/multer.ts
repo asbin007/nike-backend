@@ -11,7 +11,7 @@
 // })
 
 // export {multer,storage}
-
+//Using cloudinary in term of multer for image storage
 
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
