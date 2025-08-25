@@ -4,7 +4,7 @@ import userMiddleware, { Role } from "../middleware/userMiddleware.js";
 import errorHandler from "../services/errorHandler.js";
 import { upload } from '../middleware/multer.js';
 
-// import multer from "multer";
+// import multer from "multer"
 const router: Router = express.Router();
 
 router
