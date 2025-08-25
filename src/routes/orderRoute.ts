@@ -12,7 +12,7 @@ router.route("/all").get( errorHandler(orderController.fetchAllOrders))
 // Khalti Payment Verification
 router.route("/khalti/verify").post(userMiddleware.isUserLoggedIn, errorHandler(orderController.verifyTransaction))
 
-// Khalti Webhook (no authentication required as this is called by Khalti)
+// Khalti Webhook (no authentication is required as this is called by Khalti)
 router.route("/khalti-webhook").post(errorHandler(orderController.khaltiWebhook))
 
 router.route('/:id').get(errorHandler(orderController.fetchMyOrderDetail  ))
