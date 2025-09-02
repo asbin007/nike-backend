@@ -1,6 +1,6 @@
-// src/database/connection.ts
 import { Sequelize } from "sequelize-typescript";
 import { envConfig } from "../config/config.js";
+
 import Category from "./models/categoryModel.js";
 import ProductReview from "./models/productReviewModal.js";
 import Shoe from "./models/productModel.js";
@@ -13,7 +13,7 @@ import OrderDetails from "./models/orderDetaills.js";
 import Chat from "./models/chatModel.js";
 import Message from "./models/messageModel.js";
 
-// Initialize Sequelize
+// ✅ Use SSL for Render PostgreSQL
 const sequelize = new Sequelize(envConfig.dbUrl as string, {
   models: [
     Category,
@@ -29,9 +29,12 @@ const sequelize = new Sequelize(envConfig.dbUrl as string, {
     Message,
   ],
   dialect: "postgres",
-  dialectOptions: process.env.NODE_ENV === "production" ? { 
-    ssl: { rejectUnauthorized: false } // ✅ Enable SSL in production
-  } : {},
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
   pool: {
     max: 5,
     min: 0,
@@ -41,7 +44,7 @@ const sequelize = new Sequelize(envConfig.dbUrl as string, {
   logging: false,
 });
 
-// Connect and sync DB
+// ✅ Connect and sync DB
 sequelize
   .authenticate()
   .then(() => console.log("✅ Database connected successfully"))
@@ -96,17 +99,18 @@ Shoe.hasMany(OrderDetails, { foreignKey: "productId" });
 
 // ===== CHAT RELATIONSHIPS =====
 
-// Chat relations
+// Chat x Users
 Chat.belongsTo(User, { as: "Customer", foreignKey: "customerId" });
 Chat.belongsTo(User, { as: "Admin", foreignKey: "adminId" });
 
 User.hasMany(Chat, { as: "CustomerChats", foreignKey: "customerId" });
 User.hasMany(Chat, { as: "AdminChats", foreignKey: "adminId" });
 
-// Message relations
+// Message x Chat
 Message.belongsTo(Chat, { foreignKey: "chatId" });
 Chat.hasMany(Message, { foreignKey: "chatId" });
 
+// Message x User
 Message.belongsTo(User, { as: "Sender", foreignKey: "senderId" });
 Message.belongsTo(User, { as: "Receiver", foreignKey: "receiverId" });
 
