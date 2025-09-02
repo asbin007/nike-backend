@@ -1,3 +1,6 @@
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first"); // ✅ Force IPv4 DNS resolution
+
 import { Sequelize } from "sequelize-typescript";
 import { envConfig } from "../config/config.js";
 
