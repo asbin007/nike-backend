@@ -1,16 +1,16 @@
 import { Sequelize } from "sequelize-typescript";
-import { envConfig } from "../config/config";
-import Category from "./models/categoryModel";
-import ProductReview from "./models/productReviewModal";
-import Shoe from "./models/productModel";
-import User from "./models/userModel";
-import Collection from "./models/collectionModel";
-import Cart from "./models/cartModel";
-import Order from "./models/orderModel";
-import Payment from "./models/paymentModel";
-import OrderDetails from "./models/orderDetaills";
-import Chat from "./models/chatModel";
-import Message from "./models/messageModel";
+import { envConfig } from "../config/config.js";
+import Category from "./models/categoryModel.js";
+import ProductReview from "./models/productReviewModal.js";
+import Shoe from "./models/productModel.js";
+import User from "./models/userModel.js";
+import Collection from "./models/collectionModel.js";
+import Cart from "./models/cartModel.js";
+import Order from "./models/orderModel.js";
+import Payment from "./models/paymentModel.js";
+import OrderDetails from "./models/orderDetaills.js";
+import Chat from "./models/chatModel.js";
+import Message from "./models/messageModel.js";
 
 const sequelize = new Sequelize(envConfig.dbUrl as string, {
   models: [

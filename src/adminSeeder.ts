@@ -1,6 +1,6 @@
 import  bcrypt  from 'bcrypt';
-import { envConfig } from './config/config.ts';
-import User from "./database/models/userModel.ts"
+import { envConfig } from './config/config.js';
+import User from "./database/models/userModel.js"
 
 
 const adminSeeder=async()=>{
