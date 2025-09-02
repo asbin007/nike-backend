@@ -27,11 +27,15 @@ const sequelize = new Sequelize(envConfig.dbUrl as string, {
     Message,
   ],
   dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
+    ssl: false, // Disable SSL to avoid SASL issues
   },
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+  },
+  logging: false,
 });
 
 
