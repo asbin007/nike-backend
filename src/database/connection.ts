@@ -1,3 +1,4 @@
+// src/database/connection.ts
 import { Sequelize } from "sequelize-typescript";
 import { envConfig } from "../config/config.js";
 import Category from "./models/categoryModel.js";
@@ -12,6 +13,7 @@ import OrderDetails from "./models/orderDetaills.js";
 import Chat from "./models/chatModel.js";
 import Message from "./models/messageModel.js";
 
+// Initialize Sequelize
 const sequelize = new Sequelize(envConfig.dbUrl as string, {
   models: [
     Category,
@@ -26,9 +28,10 @@ const sequelize = new Sequelize(envConfig.dbUrl as string, {
     Chat,
     Message,
   ],
-  dialectOptions: {
-    ssl: false, // Disable SSL to avoid SASL issues
-  },
+  dialect: "postgres",
+  dialectOptions: process.env.NODE_ENV === "production" ? { 
+    ssl: { rejectUnauthorized: false } // ✅ Enable SSL in production
+  } : {},
   pool: {
     max: 5,
     min: 0,
@@ -38,25 +41,16 @@ const sequelize = new Sequelize(envConfig.dbUrl as string, {
   logging: false,
 });
 
+// Connect and sync DB
+sequelize
+  .authenticate()
+  .then(() => console.log("✅ Database connected successfully"))
+  .catch((err) => console.error("❌ Unable to connect to the database:", err));
 
-// Skip database connection in production to avoid SASL issues
-if (process.env.NODE_ENV !== 'production') {
-  sequelize
-    .authenticate()
-    .then(() => {
-      console.log("Database connection established successfully");
-    })
-    .catch((error) => {
-      console.error("Unable to connect to the database:", error);
-    });
-
-  sequelize.sync({ force: false, alter: false}).then(() => {
-    console.log("Database synchronized successfully");
-  });
-} else {
-  console.log("⚠️  Skipping database connection in production due to SASL issues");
-  console.log("💡 Consider using Supabase REST API or different database provider");
-}
+sequelize
+  .sync({ force: false, alter: false })
+  .then(() => console.log("✅ Database synchronized successfully"))
+  .catch((err) => console.error("❌ Error syncing database:", err));
 
 // ===== DATABASE RELATIONSHIPS =====
 

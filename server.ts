@@ -51,7 +51,8 @@ function startServer() {
           "http://localhost:5173", 
           "http://localhost:3000",
           "https://nike-frontend.vercel.app",
-          "https://nike-store-frontend.vercel.app",
+          "https://nike-frontend-henna.vercel.app/",
+
           "*"
         ],
       },
