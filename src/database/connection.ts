@@ -39,18 +39,24 @@ const sequelize = new Sequelize(envConfig.dbUrl as string, {
 });
 
 
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log("Database connection established successfully");
-  })
-  .catch((error) => {
-    console.error("Unable to connect to the database:", error);
-  });
+// Skip database connection in production to avoid SASL issues
+if (process.env.NODE_ENV !== 'production') {
+  sequelize
+    .authenticate()
+    .then(() => {
+      console.log("Database connection established successfully");
+    })
+    .catch((error) => {
+      console.error("Unable to connect to the database:", error);
+    });
 
-sequelize.sync({ force: false, alter: false}).then(() => {
-  console.log("Database synchronized successfully");
-});
+  sequelize.sync({ force: false, alter: false}).then(() => {
+    console.log("Database synchronized successfully");
+  });
+} else {
+  console.log("⚠️  Skipping database connection in production due to SASL issues");
+  console.log("💡 Consider using Supabase REST API or different database provider");
+}
 
 // ===== DATABASE RELATIONSHIPS =====
 
