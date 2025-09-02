@@ -1,64 +1,52 @@
 import { Sequelize } from "sequelize-typescript";
-import { envConfig } from "../config/config.ts";
-import Category from "./models/categoryModel.ts";
-import ProductReview from "./models/productReviewModal.ts";
-import Shoe from "./models/productModel.ts";
-import User from "./models/userModel.ts";
-import Collection from "./models/collectionModel.ts";
-import Cart from "./models/cartModel.ts";
-import Order from "./models/orderModel.ts";
-import Payment from "./models/paymentModel.ts";
-import OrderDetails from "./models/orderDetaills.ts"; 
-import Chat from "./models/chatModel.ts";
-import Message from "./models/messageModel.ts";
+import { envConfig } from "../config/config";
+import Category from "./models/categoryModel";
+import ProductReview from "./models/productReviewModal";
+import Shoe from "./models/productModel";
+import User from "./models/userModel";
+import Collection from "./models/collectionModel";
+import Cart from "./models/cartModel";
+import Order from "./models/orderModel";
+import Payment from "./models/paymentModel";
+import OrderDetails from "./models/orderDetaills";
+import Chat from "./models/chatModel";
+import Message from "./models/messageModel";
 
-// Simple database configuration
-const dialectOptions: any = {};
-
-// Configure SSL based on environment
-if (process.env.NODE_ENV === 'production') {
-  dialectOptions.ssl = {
-    require: true,
-    rejectUnauthorized: false
-  };
-} else {
-  dialectOptions.ssl = false;
-}
-
-// Create Sequelize instance
-const sequelize = new Sequelize(envConfig.databaseUrl as string, {
-  models: [Category, ProductReview, Shoe, User, Collection, Cart, Order, Payment, OrderDetails, Chat, Message],
-  logging: false,
-  dialectOptions,
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
-  }
+const sequelize = new Sequelize(envConfig.dbUrl as string, {
+  models: [
+    Category,
+    ProductReview,
+    Shoe,
+    User,
+    Collection,
+    Cart,
+    Order,
+    Payment,
+    OrderDetails,
+    Chat,
+    Message,
+  ],
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
 });
 
-// Database connection function
-const connectDatabase = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("✅ Database connected successfully");
-    return true;
-  } catch (error) {
-    console.error("❌ Database connection failed:", error);
-    
-    if (process.env.NODE_ENV === 'production') {
-      console.log("⚠️  Continuing without database connection...");
-      return false;
-    } else {
-      console.error("💥 Exiting due to database connection failure in development");
-      process.exit(1);
-    }
-  }
-};
 
-// Initialize database connection
-connectDatabase();
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log("Database connection established successfully");
+  })
+  .catch((error) => {
+    console.error("Unable to connect to the database:", error);
+  });
+
+sequelize.sync({ force: false, alter: false}).then(() => {
+  console.log("Database synchronized successfully");
+});
 
 // ===== DATABASE RELATIONSHIPS =====
 

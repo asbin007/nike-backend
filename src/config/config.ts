@@ -6,6 +6,7 @@ config();
 export const envConfig = {
     port: process.env.PORT,
     databaseUrl: process.env.DATABASE_URL,
+    dbUrl: process.env.DATABASE_URL,
     jwtSecret: process.env.JWT_SECRETE_KEY,
     jwtExpiration: process.env.JWT_EXPIRE_IN || '24h',
     email: process.env.EMAIL,
