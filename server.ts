@@ -1,4 +1,4 @@
-import http from 'http';
+import http from "http";
 import { envConfig } from "./src/config/config.js";
 import app from "./src/app.js";
 import { Server } from "socket.io";
@@ -11,56 +11,58 @@ import Chat from "./src/database/models/chatModel.js";
 import sequelize from "./src/database/connection.js";
 
 function startServer() {
+  const host = process.env.HOST || "0.0.0.0";
+  const port = envConfig.port || 3000;
   try {
-    console.log('Starting server...');
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log("Starting server...");
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     console.log(`Port: ${envConfig.port}`);
-    
-    const server = app.listen(envConfig.port, async () => {
+
+    const server = app.listen(Number(port), host, async () => {
       console.log(`Server is running on port ${envConfig.port}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+
       // Wait for database sync to complete
       if (envConfig.databaseUrl) {
         try {
           // First try to authenticate
           await sequelize.authenticate();
           console.log("Database connection verified");
-          
+
           // Then sync the database - use force: false and alter: false for production
           await sequelize.sync({ force: false, alter: false });
           console.log("Database synced successfully");
         } catch (error) {
-          console.error('Error syncing database:', error);
-          
+          console.error("Error syncing database:", error);
+
           // In production, continue without database sync
-          if (process.env.NODE_ENV === 'production') {
-            console.log('Continuing without database sync in production...');
+          if (process.env.NODE_ENV === "production") {
+            console.log("Continuing without database sync in production...");
           } else {
             throw error; // Re-throw in development
           }
         }
       } else {
-        console.log('Skipping database sync - no database connection');
+        console.log("Skipping database sync - no database connection");
       }
     });
 
     const io = new Server(server, {
       cors: {
         origin: [
-          "http://localhost:5173", 
+          "http://localhost:5173",
           "http://localhost:3000",
           "https://nike-frontend.vercel.app",
           "https://nike-frontend-henna.vercel.app/",
 
-          "*"
+          "*",
         ],
       },
     });
 
     // Export io for use in other modules
     (global as any).io = io;
-    
+
     let activeUser: { socketId: string; userId: string; role: string }[] = [];
     let addToOnlineUsers = (socketId: string, userId: string, role: string) => {
       activeUser = activeUser.filter((user) => user.userId !== userId);
@@ -69,7 +71,7 @@ function startServer() {
 
     io.on("connection", (socket) => {
       console.log("User connected:", socket.id);
-      
+
       const { token } = socket.handshake.auth;
       if (token) {
         jwt.verify(
@@ -86,13 +88,13 @@ function startServer() {
               return;
             }
             addToOnlineUsers(socket.id, result.userId, userData.role);
-            
+
             socket.data = {
               userId: result.userId,
               role: userData.role,
-              username: userData.username
+              username: userData.username,
             };
-            
+
             console.log("User authenticated:", userData.username);
           }
         );
@@ -104,12 +106,9 @@ function startServer() {
       socket.on("updateOrderStatus", async (data) => {
         const { status, orderId, userId } = data;
         const findUser = activeUser.find((user) => user.userId == userId);
-        
-        await Order.update(
-          { orderStatus: status },
-          { where: { id: orderId } }
-        );
-        
+
+        await Order.update({ orderStatus: status }, { where: { id: orderId } });
+
         if (findUser) {
           io.to(findUser.socketId).emit("statusUpdated", data);
         } else {
@@ -121,12 +120,12 @@ function startServer() {
       socket.on("updatePaymentStatus", async (data) => {
         const { status, paymentId, userId } = data;
         const findUser = activeUser.find((user) => user.userId == userId);
-        
+
         await Payment.update(
           { paymentStatus: status },
           { where: { id: paymentId } }
         );
-        
+
         if (findUser) {
           io.to(findUser.socketId).emit("paymentStatusUpdated", {
             paymentId,
@@ -152,18 +151,22 @@ function startServer() {
       socket.on("sendMessage", async (data) => {
         const { chatId, content, imageUrl } = data;
         const senderId = socket.data?.userId;
-        
+
         if (!chatId || (!content && !imageUrl) || !senderId) {
-          socket.emit("error", "Chat ID, content or image, and sender ID are required");
+          socket.emit(
+            "error",
+            "Chat ID, content or image, and sender ID are required"
+          );
           return;
         }
 
         try {
           const chat = await Chat.findOne({
-            where: { 
+            where: {
               id: chatId,
-              [socket.data?.role === 'admin' ? 'adminId' : 'customerId']: senderId 
-            }
+              [socket.data?.role === "admin" ? "adminId" : "customerId"]:
+                senderId,
+            },
           });
 
           if (!chat) {
@@ -171,7 +174,8 @@ function startServer() {
             return;
           }
 
-          const receiverId = socket.data?.role === 'admin' ? chat.customerId : chat.adminId;
+          const receiverId =
+            socket.data?.role === "admin" ? chat.customerId : chat.adminId;
 
           const message = await Message.create({
             chatId,
@@ -201,13 +205,15 @@ function startServer() {
           });
 
           io.to(chatId).emit("receiveMessage", messageWithUser);
-          
-          const receiverSocket = activeUser.find(user => user.userId === receiverId);
+
+          const receiverSocket = activeUser.find(
+            (user) => user.userId === receiverId
+          );
           if (receiverSocket && !socket.rooms.has(chatId)) {
             io.to(receiverSocket.socketId).emit("newMessageNotification", {
               chatId,
               message: messageWithUser,
-              sender: socket.data?.username
+              sender: socket.data?.username,
             });
           }
 
@@ -242,9 +248,8 @@ function startServer() {
         activeUser = activeUser.filter((user) => user.socketId !== socket.id);
       });
     });
-
   } catch (error) {
-    console.error('Error starting server:', error);
+    console.error("Error starting server:", error);
     process.exit(1);
   }
 }

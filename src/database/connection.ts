@@ -19,7 +19,7 @@ import Message from "./models/messageModel.js";
 // ✅ Use SSL for Render PostgreSQL
 const sequelize = new Sequelize(envConfig.dbUrl as string, {
   models: [
-    Category,
+    Category, 
     ProductReview,
     Shoe,
     User,

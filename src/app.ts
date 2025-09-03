@@ -8,6 +8,7 @@ import cartRoute from './routes/cartRoute.js'
 import orderRoute from './routes/orderRoute.js'
 import reviewRoute from './routes/productReviewRoute.js'
 import chatRoute from './routes/chatRoute.js'
+import recommendationRoute from './routes/recommendationRoute.js'
 import cors from "cors";
 const app = express();
 app.use(express.json());
@@ -68,6 +69,7 @@ app.use('/api/cart',cartRoute)
 app.use('/api/order',orderRoute)
 app.use('/api/review',reviewRoute)
 app.use('/api/chats',chatRoute)
+app.use('/api/recommendations', recommendationRoute)
 
 app.use(express.static('./src/uploads'));
 
