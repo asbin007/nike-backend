@@ -1,4 +1,4 @@
-import { Table, Column, Model, DataType, Validate, ForeignKey } from "sequelize-typescript";
+import { Table, Column, Model, DataType, Validate, ForeignKey, BelongsTo, HasOne } from "sequelize-typescript";
 import { OrderStatus } from "../../services/types.js";
 import User from "./userModel.js";
 import Payment from "./paymentModel.js";
@@ -94,6 +94,25 @@ class Order extends Model {
 
 
 
+    @ForeignKey(() => User)
+    @Column({
+      type: DataType.UUID,
+      allowNull: false,
+    })
+    declare userId: string;
+
+    @ForeignKey(() => Payment)
+    @Column({
+      type: DataType.UUID,
+      allowNull: false,
+    })
+    declare paymentId: string;
+
+    @BelongsTo(() => User)
+    declare User: User;
+
+    @BelongsTo(() => Payment)
+    declare Payment: Payment;
 }
 
 

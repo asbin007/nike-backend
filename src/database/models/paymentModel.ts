@@ -1,5 +1,6 @@
-import { Table, Column, DataType, Model } from "sequelize-typescript";
+import { Table, Column, DataType, Model, HasOne } from "sequelize-typescript";
 import { PaymentMethod, PaymentStatus } from "../../services/types.js";
+import Order from "./orderModel.js";
 
 @Table({
   tableName: "payments",
@@ -35,7 +36,8 @@ class Payment extends Model {
   })
   declare pidx:string
 
-
+  @HasOne(() => Order)
+  declare Order: Order;
 }
 
 export default Payment;
