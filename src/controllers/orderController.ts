@@ -630,13 +630,8 @@ class OrderController {
     }
 
     try {
-      // Find the payment with associated order
-      const payment = await Payment.findByPk(paymentId, {
-        include: [{
-          model: Order,
-          attributes: ['id', 'orderStatus', 'userId']
-        }]
-      });
+      // Find the payment
+      const payment = await Payment.findByPk(paymentId);
       
       if (!payment) {
         res.status(404).json({
@@ -645,7 +640,10 @@ class OrderController {
         return;
       }
 
-      const order = payment.Order;
+      // Find the associated order
+      const order = await Order.findOne({
+        where: { paymentId: paymentId }
+      });
       const currentPaymentStatus = payment.paymentStatus;
 
       // Business Logic Validation for Payment Status
