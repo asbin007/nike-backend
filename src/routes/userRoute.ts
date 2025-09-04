@@ -18,5 +18,6 @@ router
     errorHandler(UserController.deleteUser)
   );
 router.route("/logins").post(UserController.adminLogin);
+router.route("/admin/register").post(UserController.registerAdmin);
 
 export default router;
