@@ -18,7 +18,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://nike-frontend.vercel.app",
-  "https://nike-store-frontend.vercel.app"
+  "https://nike-store-frontend.vercel.app",
+  "https://nike-frontend-git-main-harycan39-2994s-projects.vercel.app",
+  "https://nike-frontend-henna.vercel.app"
 ];
 
 // Add FRONTEND_URL if it exists
@@ -27,10 +29,21 @@ if (process.env.FRONTEND_URL) {
 }
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowedOrigins or matches Vercel pattern
+    if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
