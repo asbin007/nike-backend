@@ -518,8 +518,14 @@ class OrderController {
     }
 
     try {
-      // Find the order first
-      const order = await Order.findByPk(orderId);
+      // Find the order with payment information
+      const order = await Order.findByPk(orderId, {
+        include: [{
+          model: Payment,
+          attributes: ['id', 'paymentStatus', 'paymentMethod']
+        }]
+      });
+      
       if (!order) {
         res.status(404).json({
           message: "Order not found",
@@ -527,15 +533,60 @@ class OrderController {
         return;
       }
 
-      // Update order status
-    await Order.update(
-        { orderStatus: orderStatus },
-      {
-        where: {
-          id: orderId,
-        },
+      // Business Logic Validation
+      const currentStatus = order.orderStatus;
+      const paymentStatus = order.Payment?.paymentStatus;
+
+      // Rule 1: Cannot deliver without payment
+      if (orderStatus === OrderStatus.Delivered && paymentStatus !== 'paid') {
+        res.status(400).json({
+          message: "Cannot deliver order without payment. Payment status must be 'paid'.",
+          currentPaymentStatus: paymentStatus,
+          requiredPaymentStatus: 'paid'
+        });
+        return;
       }
-    );
+
+      // Rule 2: Cannot move to preparation without payment (for non-COD orders)
+      if (orderStatus === OrderStatus.Preparation && 
+          order.Payment?.paymentMethod !== 'cod' && 
+          paymentStatus !== 'paid') {
+        res.status(400).json({
+          message: "Cannot prepare order without payment. Payment status must be 'paid' for non-COD orders.",
+          currentPaymentStatus: paymentStatus,
+          paymentMethod: order.Payment?.paymentMethod
+        });
+        return;
+      }
+
+      // Rule 3: Status progression validation
+      const validTransitions: { [key: string]: string[] } = {
+        [OrderStatus.Pending]: [OrderStatus.Preparation, OrderStatus.Cancelled],
+        [OrderStatus.Preparation]: [OrderStatus.Ontheway, OrderStatus.Cancelled],
+        [OrderStatus.Ontheway]: [OrderStatus.Delivered],
+        [OrderStatus.Delivered]: [], // Final state
+        [OrderStatus.Cancelled]: [] // Final state
+      };
+
+      if (!validTransitions[currentStatus]?.includes(orderStatus)) {
+        res.status(400).json({
+          message: `Invalid status transition from ${currentStatus} to ${orderStatus}`,
+          currentStatus,
+          newStatus: orderStatus,
+          validTransitions: validTransitions[currentStatus] || []
+        });
+        return;
+      }
+
+      // Update order status
+      await Order.update(
+        { orderStatus: orderStatus },
+        {
+          where: {
+            id: orderId,
+          },
+        }
+      );
 
       // Emit websocket event for real-time updates
       const io = (global as any).io;
@@ -543,7 +594,9 @@ class OrderController {
         io.emit('orderStatusUpdated', {
           orderId: orderId,
           status: orderStatus,
-          message: `Order status updated to ${orderStatus}`,
+          previousStatus: currentStatus,
+          paymentStatus: paymentStatus,
+          message: `Order status updated from ${currentStatus} to ${orderStatus}`,
           updatedBy: req.user?.id
         });
 
@@ -551,9 +604,11 @@ class OrderController {
       }
 
       res.status(200).json({
-      message: "Order status updated successfully",
+        message: "Order status updated successfully",
         orderId: orderId,
-        newStatus: orderStatus
+        previousStatus: currentStatus,
+        newStatus: orderStatus,
+        paymentStatus: paymentStatus
       });
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -575,13 +630,52 @@ class OrderController {
     }
 
     try {
-      // Find the payment first
-      const payment = await Payment.findByPk(paymentId);
+      // Find the payment with associated order
+      const payment = await Payment.findByPk(paymentId, {
+        include: [{
+          model: Order,
+          attributes: ['id', 'orderStatus', 'userId']
+        }]
+      });
+      
       if (!payment) {
         res.status(404).json({
           message: "Payment not found",
         });
         return;
+      }
+
+      const order = payment.Order;
+      const currentPaymentStatus = payment.paymentStatus;
+
+      // Business Logic Validation for Payment Status
+      
+      // Rule 1: Cannot change from 'paid' to 'unpaid' if order is already delivered
+      if (currentPaymentStatus === 'paid' && status === 'unpaid' && order?.orderStatus === OrderStatus.Delivered) {
+        res.status(400).json({
+          message: "Cannot change payment status from 'paid' to 'unpaid' for delivered orders",
+          currentPaymentStatus,
+          newStatus: status,
+          orderStatus: order?.orderStatus
+        });
+        return;
+      }
+
+      // Rule 2: Cannot change from 'paid' to 'unpaid' if order is on the way
+      if (currentPaymentStatus === 'paid' && status === 'unpaid' && order?.orderStatus === OrderStatus.Ontheway) {
+        res.status(400).json({
+          message: "Cannot change payment status from 'paid' to 'unpaid' for orders that are on the way",
+          currentPaymentStatus,
+          newStatus: status,
+          orderStatus: order?.orderStatus
+        });
+        return;
+      }
+
+      // Rule 3: If payment is marked as 'paid', automatically move order to preparation (if it's pending)
+      let orderStatusUpdate = null;
+      if (status === 'paid' && order?.orderStatus === OrderStatus.Pending) {
+        orderStatusUpdate = OrderStatus.Preparation;
       }
 
       // Update payment status
@@ -594,10 +688,13 @@ class OrderController {
         }
       );
 
-      // Find associated order
-      const order = await Order.findOne({
-        where: { paymentId: paymentId }
-      });
+      // Update order status if needed
+      if (orderStatusUpdate && order) {
+        await Order.update(
+          { orderStatus: orderStatusUpdate },
+          { where: { id: order.id } }
+        );
+      }
 
       // Emit websocket event for real-time updates
       const io = (global as any).io;
@@ -606,9 +703,23 @@ class OrderController {
           paymentId: paymentId,
           orderId: order?.id,
           status: status,
-          message: `Payment status updated to ${status}`,
+          previousStatus: currentPaymentStatus,
+          orderStatus: orderStatusUpdate || order?.orderStatus,
+          message: `Payment status updated from ${currentPaymentStatus} to ${status}`,
           updatedBy: req.user?.id
         });
+
+        // If order status was also updated, emit order status update
+        if (orderStatusUpdate && order) {
+          io.emit('orderStatusUpdated', {
+            orderId: order.id,
+            status: orderStatusUpdate,
+            previousStatus: order.orderStatus,
+            paymentStatus: status,
+            message: `Order automatically moved to preparation after payment confirmation`,
+            updatedBy: req.user?.id
+          });
+        }
 
         console.log('Websocket event emitted for payment status change');
       }
@@ -617,7 +728,12 @@ class OrderController {
         message: "Payment status updated successfully",
         paymentId: paymentId,
         orderId: order?.id,
-        newStatus: status
+        previousStatus: currentPaymentStatus,
+        newStatus: status,
+        orderStatusUpdated: orderStatusUpdate ? {
+          previousStatus: order?.orderStatus,
+          newStatus: orderStatusUpdate
+        } : null
       });
     } catch (error) {
       console.error('Error updating payment status:', error);
