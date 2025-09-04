@@ -107,35 +107,77 @@ function startServer() {
       // Handle order status updates
       socket.on("updateOrderStatus", async (data) => {
         const { status, orderId, userId } = data;
-        const findUser = activeUser.find((user) => user.userId == userId);
+        console.log("🔄 Backend: Order status update received:", data);
 
-        await Order.update({ orderStatus: status }, { where: { id: orderId } });
+        try {
+          await Order.update({ orderStatus: status }, { where: { id: orderId } });
+          console.log("✅ Backend: Order status updated in database");
 
-        if (findUser) {
-          io.to(findUser.socketId).emit("statusUpdated", data);
-        } else {
-          socket.emit("error", "User is not online!!");
+          // Broadcast to all connected clients for real-time updates
+          io.emit("orderStatusUpdated", {
+            orderId: orderId,
+            status: status,
+            updatedBy: userId,
+            message: `Order status updated to ${status}`
+          });
+          console.log("📢 Backend: Order status broadcasted to all clients");
+
+          // Also send to specific user if online
+          const findUser = activeUser.find((user) => user.userId == userId);
+          if (findUser) {
+            io.to(findUser.socketId).emit("statusUpdated", data);
+            console.log("📤 Backend: Order status sent to specific user");
+          } else {
+            console.log("⚠️ Backend: User not online, but update was saved");
+          }
+        } catch (error) {
+          console.error("❌ Backend: Error updating order status:", error);
+          socket.emit("error", "Failed to update order status");
         }
       });
 
       // Handle payment status updates
       socket.on("updatePaymentStatus", async (data) => {
         const { status, paymentId, userId } = data;
-        const findUser = activeUser.find((user) => user.userId == userId);
+        console.log("💰 Backend: Payment status update received:", data);
 
-        await Payment.update(
-          { paymentStatus: status },
-          { where: { id: paymentId } }
-        );
+        try {
+          await Payment.update(
+            { paymentStatus: status },
+            { where: { id: paymentId } }
+          );
+          console.log("✅ Backend: Payment status updated in database");
 
-        if (findUser) {
-          io.to(findUser.socketId).emit("paymentStatusUpdated", {
-            paymentId,
-            status,
-            message: "Payment status updated successfully",
+          // Find associated order
+          const order = await Order.findOne({
+            where: { paymentId: paymentId }
           });
-        } else {
-          socket.emit("error", "User is not online to receive payment update!");
+
+          // Broadcast to all connected clients for real-time updates
+          io.emit("paymentStatusUpdated", {
+            paymentId: paymentId,
+            orderId: order?.id,
+            status: status,
+            updatedBy: userId,
+            message: `Payment status updated to ${status}`
+          });
+          console.log("📢 Backend: Payment status broadcasted to all clients");
+
+          // Also send to specific user if online
+          const findUser = activeUser.find((user) => user.userId == userId);
+          if (findUser) {
+            io.to(findUser.socketId).emit("paymentStatusUpdated", {
+              paymentId,
+              status,
+              message: "Payment status updated successfully",
+            });
+            console.log("📤 Backend: Payment status sent to specific user");
+          } else {
+            console.log("⚠️ Backend: User not online, but update was saved");
+          }
+        } catch (error) {
+          console.error("❌ Backend: Error updating payment status:", error);
+          socket.emit("error", "Failed to update payment status");
         }
       });
 
