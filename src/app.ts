@@ -29,7 +29,18 @@ if (process.env.FRONTEND_URL) {
 }
 
 const corsOptions = {
-  origin: true, // Allow all origins temporarily for debugging
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowedOrigins or matches Vercel pattern
+    if (allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    // For debugging, allow all origins
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'Access-Control-Allow-Origin'],
@@ -41,7 +52,16 @@ app.use(cors(corsOptions));
 
 // Additional CORS middleware for preflight requests
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('localhost'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.header('Access-Control-Allow-Origin', '*');
+  } else {
+    // For debugging, allow all origins
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-auth-token');
   res.header('Access-Control-Allow-Credentials', 'true');

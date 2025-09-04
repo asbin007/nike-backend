@@ -49,7 +49,14 @@ function startServer() {
 
     const io = new Server(server, {
       cors: {
-        origin: "*", // Allow all origins temporarily
+        origin: [
+          "http://localhost:5173",
+          "http://localhost:3000",
+          "https://nike-frontend.vercel.app",
+          "https://nike-frontend-henna.vercel.app",
+          "https://nike-frontend-git-main-harycan39-2994s-projects.vercel.app",
+          "https://nike-store-frontend.vercel.app"
+        ],
         credentials: true,
         methods: ['GET', 'POST'],
       },
