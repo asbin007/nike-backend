@@ -503,63 +503,23 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
         return;
       }
 
-      // generate a 6 digit otp
-      const otp = otpGenerator.generate(6, {
-        lowerCaseAlphabets: false,
-        upperCaseAlphabets: false,
-        specialChars: false,
-        digits: true,
-      });
-
-      // hash the password and create admin user
+      // hash the password and create admin user directly (no OTP verification needed)
       const hashedPassword = bcrypt.hashSync(password, 10);
       const newAdmin = await User.create({
         username,
         email,
         password: hashedPassword,
         role: Role.Admin, // Set role as admin
-        otp,
-        otpGeneratedTime: Date.now().toString(),
-        isVerified: false,
+        isVerified: true, // Admin is verified immediately
       });
 
-      // Send OTP email
-      try {
-        await sendMail({
-          to: email,
-          subject: "Admin Registration OTP - Nike Store",
-          text: `Your admin registration OTP is: ${otp}. This OTP will expire in 10 minutes.`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">Admin Registration - Nike Store 👑</h2>
-              <p>Hi ${username},</p>
-              <p>Thank you for registering as an admin with Nike Store. Please complete your admin registration using the OTP below:</p>
-              <div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0;">
-                <h1 style="color: #000; font-size: 32px; letter-spacing: 5px; margin: 0;">${otp}</h1>
-              </div>
-              <p><strong>This OTP will expire in 10 minutes.</strong></p>
-              <p>With admin access, you'll be able to manage products, orders, and users.</p>
-              <p>If you didn't request this admin account, please ignore this email.</p>
-              <p>Best regards,<br>Nike Store Admin Team</p>
-            </div>
-          `
-        });
-
-        res.status(201).json({
-          message: "Admin registered successfully. Please check your email for OTP.",
-          userId: newAdmin.id,
-          email: newAdmin.email,
-          role: newAdmin.role,
-          requiresOtp: true,
-        });
-      } catch (emailError) {
-        console.error("Email sending failed:", emailError);
-        // Delete the admin if email sending fails
-        await newAdmin.destroy();
-        res.status(500).json({
-          message: "Admin registration failed. Please try again.",
-        });
-      }
+      res.status(201).json({
+        message: "Admin registered successfully. You can now login.",
+        userId: newAdmin.id,
+        username: newAdmin.username,
+        email: newAdmin.email,
+        role: newAdmin.role,
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({
