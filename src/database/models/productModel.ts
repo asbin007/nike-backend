@@ -49,7 +49,7 @@ class Shoe extends Model {
   })
   declare originalPrice: number;
 
-  @Column({
+  @Column({ 
     type: DataType.TEXT,
     allowNull: false,
   })
