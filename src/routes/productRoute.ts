@@ -4,16 +4,12 @@ import userMiddleware, { Role } from "../middleware/userMiddleware.js";
 import errorHandler from "../services/errorHandler.js";
 import { upload } from '../middleware/multer.js';
 
+// import multer from "multer"
 const router: Router = express.Router();
 
 router
   .route("/")
-  .post(
-    userMiddleware.isUserLoggedIn,
-    userMiddleware.accessTo(Role.Admin),
-    upload.array("images",5), 
-    errorHandler(productController.createProduct)
-  )
+  .post(upload.array("images",5), errorHandler(productController.createProduct))
   .get(productController.getAllProducts);
 
 router
@@ -22,13 +18,7 @@ router
     userMiddleware.isUserLoggedIn,
     userMiddleware.accessTo(Role.Admin),
     errorHandler(productController.deleteProduct)
-  )
-  .get(errorHandler(productController.getSingleProduct))
-  .patch(
-    userMiddleware.isUserLoggedIn,
-    userMiddleware.accessTo(Role.Admin),
-    upload.array("images",5), 
-    errorHandler(productController.updateProduct)
-  );
+)
+  .get(errorHandler(productController.getSingleProduct)).patch(upload.array("images",5), errorHandler(productController.updateProduct));
 
 export default router;
