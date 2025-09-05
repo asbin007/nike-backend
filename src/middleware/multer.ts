@@ -29,7 +29,7 @@ const storage = new CloudinaryStorage({
   params: async (req, file) => {
     return {
       folder: 'e-shoe',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp','avif','gif'],
     };
   },
 });
