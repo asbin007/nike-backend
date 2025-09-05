@@ -440,33 +440,6 @@ class OrderController {
     }
   }
 
-  async fetchAllOrders(req: Request, res: Response): Promise<void> {
-    const orders = await Order.findAll({
-      attributes: ["totalPrice", "id", "orderStatus","createdAt",'paymentId'],
-      include: [
-        {
-          model:OrderDetails,
-          attributes:['quantity']
-        },
-       
-        {
-          model: Payment,
-          attributes: ["paymentMethod", "paymentStatus"],
-        }
-      ],
-    });
-    if (orders.length > 0) {
-      res.status(201).json({
-        message: "Order fetched successfully",
-        data: orders,
-      });
-    } else {
-      res.status(404).json({
-        message: "No order found",
-        data: [],
-      });
-    }
-  }
   async cancelOrder(req: Request, res: Response): Promise<void> {
     const userId = req.user?.id;
     const orderId = req.params.id;
@@ -1000,25 +973,33 @@ class OrderController {
       console.log('🔍 Backend: Found orders:', orders.length);
       
       // Transform the data to match frontend expectations
-      const transformedOrders = orders.map(order => ({
-        id: order.id,
-        totalPrice: order.totalPrice,
-        status: order.orderStatus,
-        firstName: order.firstName,
-        lastName: order.lastName,
-        phoneNumber: order.phoneNumber,
-        email: order.email,
-        addressLine: order.addressLine,
-        city: order.city,
-        state: order.state,
-        zipcode: order.zipcode,
-        street: order.street,
-        userId: order.userId,
-        paymentId: order.paymentId,
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-        Payment: order.Payment,
-        OrderDetails: order.OrderDetails
+      const transformedOrders = await Promise.all(orders.map(async (order) => {
+        // Get order details for each order
+        const orderDetails = await OrderDetails.findAll({
+          where: { orderId: order.id },
+          attributes: ['quantity', 'productId']
+        });
+
+        return {
+          id: order.id,
+          totalPrice: order.totalPrice,
+          status: order.orderStatus,
+          firstName: order.firstName,
+          lastName: order.lastName,
+          phoneNumber: order.phoneNumber,
+          email: order.email,
+          addressLine: order.addressLine,
+          city: order.city,
+          state: order.state,
+          zipcode: order.zipcode,
+          street: order.street,
+          userId: order.userId,
+          paymentId: order.paymentId,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          Payment: order.Payment,
+          OrderDetails: orderDetails
+        };
       }));
 
       res.status(201).json({
