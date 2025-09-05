@@ -17,6 +17,7 @@ app.use(express.json());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
+  "http://localhost:3001", // Admin Panel localhost
   "https://nike-frontend.vercel.app",
   "https://nike-store-frontend.vercel.app",
   "https://nike-frontend-git-main-harycan39-2994s-projects.vercel.app",

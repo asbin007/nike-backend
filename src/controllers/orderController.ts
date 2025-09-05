@@ -962,6 +962,77 @@ class OrderController {
       });
     }
   }
+
+  async fetchAllOrders(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('🔍 Backend: Fetching all orders...');
+      
+      // Fetch all orders with their details
+      const orders = await Order.findAll({
+        include: [
+          {
+            model: Payment,
+            as: 'Payment',
+            attributes: ['id', 'paymentMethod', 'paymentStatus']
+          },
+          {
+            model: OrderDetails,
+            as: 'OrderDetails',
+            include: [
+              {
+                model: Shoe,
+                as: 'Shoe',
+                attributes: ['id', 'name', 'images', 'price'],
+                include: [
+                  {
+                    model: Category,
+                    as: 'Category',
+                    attributes: ['categoryName']
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+
+      console.log('🔍 Backend: Found orders:', orders.length);
+      
+      // Transform the data to match frontend expectations
+      const transformedOrders = orders.map(order => ({
+        id: order.id,
+        totalPrice: order.totalPrice,
+        status: order.orderStatus,
+        firstName: order.firstName,
+        lastName: order.lastName,
+        phoneNumber: order.phoneNumber,
+        email: order.email,
+        addressLine: order.addressLine,
+        city: order.city,
+        state: order.state,
+        zipcode: order.zipcode,
+        street: order.street,
+        userId: order.userId,
+        paymentId: order.paymentId,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        Payment: order.Payment,
+        OrderDetails: order.OrderDetails
+      }));
+
+      res.status(201).json({
+        message: "Order fetched successfully",
+        data: transformedOrders
+      });
+    } catch (error) {
+      console.error('Error fetching all orders:', error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
 }
 
 export default new OrderController();

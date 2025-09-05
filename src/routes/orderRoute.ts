@@ -22,3 +22,5 @@
     router.route("/cancel-order/:id").patch(userMiddleware.isUserLoggedIn,userMiddleware.accessTo(Role.Customer), errorHandler(orderController.cancelOrder))
 
     export default router
+
+    
