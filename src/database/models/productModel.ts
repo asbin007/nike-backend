@@ -97,6 +97,18 @@ class Shoe extends Model {
     defaultValue: 0,
   })
   declare totalStock: Number;
+
+  @Column({
+    type: DataType.UUID,
+    allowNull: true,
+  })
+  declare categoryId: string;
+
+  @Column({
+    type: DataType.UUID,
+    allowNull: true,
+  })
+  declare collectionId: string;
   
 }
 
