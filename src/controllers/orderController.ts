@@ -937,80 +937,24 @@ class OrderController {
   }
 
   async fetchAllOrders(req: Request, res: Response): Promise<void> {
-    try {
-      console.log('🔍 Backend: Fetching all orders...');
-      
-      // Fetch all orders with their details
-      const orders = await Order.findAll({
-        include: [
-          {
-            model: Payment,
-            as: 'Payment',
-            attributes: ['id', 'paymentMethod', 'paymentStatus']
-          },
-          {
-            model: OrderDetails,
-            as: 'OrderDetails',
-            include: [
-              {
-                model: Shoe,
-                as: 'Shoe',
-                attributes: ['id', 'name', 'images', 'price'],
-                include: [
-                  {
-                    model: Category,
-                    as: 'Category',
-                    attributes: ['categoryName']
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        order: [['createdAt', 'DESC']]
-      });
-
-      console.log('🔍 Backend: Found orders:', orders.length);
-      
-      // Transform the data to match frontend expectations
-      const transformedOrders = await Promise.all(orders.map(async (order) => {
-        // Get order details for each order
-        const orderDetails = await OrderDetails.findAll({
-          where: { orderId: order.id },
-          attributes: ['quantity', 'productId']
-        });
-
-        return {
-          id: order.id,
-          totalPrice: order.totalPrice,
-          status: order.orderStatus,
-          firstName: order.firstName,
-          lastName: order.lastName,
-          phoneNumber: order.phoneNumber,
-          email: order.email,
-          addressLine: order.addressLine,
-          city: order.city,
-          state: order.state,
-          zipcode: order.zipcode,
-          street: order.street,
-          userId: order.userId,
-          paymentId: order.paymentId,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          Payment: order.Payment,
-          OrderDetails: orderDetails
-        };
-      }));
-
+    const orders = await Order.findAll({
+      attributes: ["totalPrice", "id", "orderStatus","createdAt",'paymentId'],
+      include: [
+        {
+          model: Payment,
+          attributes: ["paymentMethod", "paymentStatus"],
+        }
+      ],
+    });
+    if (orders.length > 0) {
       res.status(201).json({
         message: "Order fetched successfully",
-        data: transformedOrders
+        data: orders,
       });
-    } catch (error) {
-      console.error('Error fetching all orders:', error);
-      res.status(500).json({
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : 'Unknown error'
+    } else {
+      res.status(404).json({
+        message: "No order found",
+        data: [],
       });
     }
   }
