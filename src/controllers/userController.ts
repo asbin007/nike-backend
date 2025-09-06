@@ -424,9 +424,9 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
           where: { customerId: id }
         });
         console.log(`Deleted chats for user ${id}`);
-      } catch (chatError) {
-        console.log('No chats to delete or chat deletion failed:', chatError.message);
-      }
+       } catch (chatError: any) {
+         console.log('No chats to delete or chat deletion failed:', chatError.message);
+       }
 
       // Delete any other related data (orders, reviews, etc.)
       try {
@@ -435,9 +435,9 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
           where: { userId: id }
         });
         console.log(`Deleted orders for user ${id}`);
-      } catch (orderError) {
-        console.log('No orders to delete or order deletion failed:', orderError.message);
-      }
+       } catch (orderError: any) {
+         console.log('No orders to delete or order deletion failed:', orderError.message);
+       }
 
       // Now delete the user
       await User.destroy({
