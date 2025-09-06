@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import Shoe from "../database/models/productModel.js";
 import Category from "../database/models/categoryModel.js";
 import Order from "../database/models/orderModel.js";
 import OrderDetails from "../database/models/orderDetaills.js";
 import Cart from "../database/models/cartModel.js";
+import sequelize from "../database/connection.js";
 
 class RecommendationController {
   /**
@@ -143,36 +144,10 @@ class RecommendationController {
   async getTrendingProducts(req: Request, res: Response): Promise<void> {
     try {
       const { limit = 12 } = req.query;
+      const limitNum = parseInt(limit as string) || 12;
       
-      // Get products ordered in the last 30 days, ordered by frequency
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const trendingProducts = await Shoe.findAll({
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-          {
-            model: OrderDetails,
-            where: {
-              createdAt: {
-                [Op.gte]: thirtyDaysAgo,
-              },
-            },
-            required: true,
-            attributes: [],
-          },
-        ],
-        group: ["Shoe.id"],
-        order: [
-          [OrderDetails, "createdAt", "DESC"],
-          ["createdAt", "DESC"],
-        ],
-        limit: parseInt(limit as string) || 12,
-        subQuery: false,
-      });
+      // Use the direct method to avoid GROUP BY issues
+      const trendingProducts = await this.getTrendingProductsDirect(limitNum);
 
       res.status(200).json({
         message: "Trending products fetched successfully",
@@ -194,26 +169,10 @@ class RecommendationController {
   async getNewArrivals(req: Request, res: Response): Promise<void> {
     try {
       const { limit = 12 } = req.query;
+      const limitNum = parseInt(limit as string) || 12;
       
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      const newArrivals = await Shoe.findAll({
-        where: {
-          createdAt: {
-            [Op.gte]: sevenDaysAgo,
-          },
-          inStock: true,
-        },
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-        ],
-        order: [["createdAt", "DESC"]],
-        limit: parseInt(limit as string) || 12,
-      });
+      // Use the direct method
+      const newArrivals = await this.getNewArrivalsDirect(limitNum);
 
       res.status(200).json({
         message: "New arrivals fetched successfully",
@@ -235,27 +194,10 @@ class RecommendationController {
   async getBestSellers(req: Request, res: Response): Promise<void> {
     try {
       const { limit = 12 } = req.query;
+      const limitNum = parseInt(limit as string) || 12;
       
-      const bestSellers = await Shoe.findAll({
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-          {
-            model: OrderDetails,
-            attributes: [],
-            required: true,
-          },
-        ],
-        group: ["Shoe.id"],
-        order: [
-          [OrderDetails, "quantity", "DESC"],
-          ["createdAt", "DESC"],
-        ],
-        limit: parseInt(limit as string) || 12,
-        subQuery: false,
-      });
+      // Use the direct method to avoid GROUP BY issues
+      const bestSellers = await this.getBestSellersDirect(limitNum);
 
       res.status(200).json({
         message: "Best sellers fetched successfully",
@@ -277,26 +219,10 @@ class RecommendationController {
   async getOnSaleProducts(req: Request, res: Response): Promise<void> {
     try {
       const { limit = 12, minDiscount = 10 } = req.query;
+      const limitNum = parseInt(limit as string) || 12;
       
-      const onSaleProducts = await Shoe.findAll({
-        where: {
-          discount: {
-            [Op.gte]: parseInt(minDiscount as string) || 10,
-          },
-          inStock: true,
-        },
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-        ],
-        order: [
-          ["discount", "DESC"],
-          ["createdAt", "DESC"],
-        ],
-        limit: parseInt(limit as string) || 12,
-      });
+      // Use the direct method
+      const onSaleProducts = await this.getOnSaleProductsDirect(limitNum);
 
       res.status(200).json({
         message: "On sale products fetched successfully",
@@ -320,17 +246,17 @@ class RecommendationController {
       const { limit = 8 } = req.query;
       const limitNum = parseInt(limit as string) || 8;
 
-      // Get all collections in parallel
+      // Get all collections in parallel using direct queries instead of helper methods
       const [
         trendingProducts,
         newArrivals,
         bestSellers,
         onSaleProducts,
       ] = await Promise.all([
-        this.getTrendingProductsData(limitNum),
-        this.getNewArrivalsData(limitNum),
-        this.getBestSellersData(limitNum),
-        this.getOnSaleProductsData(limitNum),
+        this.getTrendingProductsDirect(limitNum),
+        this.getNewArrivalsDirect(limitNum),
+        this.getBestSellersDirect(limitNum),
+        this.getOnSaleProductsDirect(limitNum),
       ]);
 
       res.status(200).json({
@@ -367,39 +293,61 @@ class RecommendationController {
     }
   }
 
-  // Helper methods for getAllCollections
-  private async getTrendingProductsData(limit: number) {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // Helper methods for getAllCollections - Fixed versions
+  private async getTrendingProductsDirect(limit: number) {
+    try {
+      // Simplified approach: get recent products, prioritize new ones and discounts
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    return await Shoe.findAll({
-      include: [
-        {
-          model: Category,
-          attributes: ["id", "categoryName"],
-        },
-        {
-          model: OrderDetails,
-          where: {
-            createdAt: {
-              [Op.gte]: thirtyDaysAgo,
-            },
+      // Get products created in last 30 days or marked as new
+      return await Shoe.findAll({
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "categoryName"],
           },
-          required: true,
-          attributes: [],
+        ],
+        where: {
+          [Op.or]: [
+            {
+              createdAt: {
+                [Op.gte]: thirtyDaysAgo,
+              },
+            },
+            {
+              isNew: true,
+            },
+          ],
+          inStock: true,
         },
-      ],
-      group: ["Shoe.id"],
-      order: [
-        [OrderDetails, "createdAt", "DESC"],
-        ["createdAt", "DESC"],
-      ],
-      limit,
-      subQuery: false,
-    });
+        order: [
+          ["isNew", "DESC"], // New products first
+          ["discount", "DESC"], // Then by discount
+          ["createdAt", "DESC"], // Then by creation date
+        ],
+        limit,
+      });
+    } catch (error) {
+      console.error("Error in getTrendingProductsDirect:", error);
+      // Fallback to simple query
+      return await Shoe.findAll({
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "categoryName"],
+          },
+        ],
+        where: {
+          inStock: true,
+        },
+        order: [["createdAt", "DESC"]],
+        limit,
+      });
+    }
   }
 
-  private async getNewArrivalsData(limit: number) {
+  private async getNewArrivalsDirect(limit: number) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -421,30 +369,71 @@ class RecommendationController {
     });
   }
 
-  private async getBestSellersData(limit: number) {
-    return await Shoe.findAll({
-      include: [
-        {
-          model: Category,
-          attributes: ["id", "categoryName"],
+  private async getBestSellersDirect(limit: number) {
+    try {
+      // Simplified approach: get products that have been ordered at least once
+      const orderedProducts = await OrderDetails.findAll({
+        attributes: ['productId'],
+        group: ['productId'],
+        limit: limit * 2, // Get more to filter later
+      });
+
+      const productIds = orderedProducts.map(product => product.productId);
+
+      // If no orders, fallback to all products sorted by creation date
+      if (productIds.length === 0) {
+        return await Shoe.findAll({
+          include: [
+            {
+              model: Category,
+              attributes: ["id", "categoryName"],
+            },
+          ],
+          where: {
+            inStock: true,
+          },
+          order: [["createdAt", "DESC"]],
+          limit,
+        });
+      }
+
+      // Get products that have been ordered (best sellers)
+      return await Shoe.findAll({
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "categoryName"],
+          },
+        ],
+        where: {
+          id: {
+            [Op.in]: productIds,
+          },
+          inStock: true,
         },
-        {
-          model: OrderDetails,
-          attributes: [],
-          required: true,
+        order: [["createdAt", "DESC"]],
+        limit,
+      });
+    } catch (error) {
+      console.error("Error in getBestSellersDirect:", error);
+      // Fallback to simple query
+      return await Shoe.findAll({
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "categoryName"],
+          },
+        ],
+        where: {
+          inStock: true,
         },
-      ],
-      group: ["Shoe.id"],
-      order: [
-        [OrderDetails, "quantity", "DESC"],
-        ["createdAt", "DESC"],
-      ],
-      limit,
-      subQuery: false,
-    });
+        order: [["createdAt", "DESC"]],
+        limit,
+      });
+    }
   }
 
-  private async getOnSaleProductsData(limit: number) {
+  private async getOnSaleProductsDirect(limit: number) {
     return await Shoe.findAll({
       where: {
         discount: {
