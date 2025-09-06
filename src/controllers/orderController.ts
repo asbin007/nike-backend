@@ -417,6 +417,7 @@ class OrderController {
             },
           ],
           attributes: [
+            "id",
             "orderStatus",
             "addressLine",
             "city",
@@ -426,6 +427,8 @@ class OrderController {
             "firstName",
             "lastName",
             "userId",
+            "createdAt",
+            "updatedAt",
           ],
         },
         {
@@ -553,7 +556,13 @@ class OrderController {
         [OrderStatus.Cancelled]: [] // Final state
       };
 
-      if (!validTransitions[currentStatus]?.includes(orderStatus)) {
+      // Special case: Allow admin to skip steps for urgent orders (with proper payment)
+      if (currentStatus === OrderStatus.Pending && 
+          orderStatus === OrderStatus.Delivered && 
+          paymentStatus === 'paid') {
+        console.log('Admin skipping status progression for urgent delivery');
+        // Allow this transition but log it
+      } else if (!validTransitions[currentStatus]?.includes(orderStatus)) {
         res.status(400).json({
           message: `Invalid status transition from ${currentStatus} to ${orderStatus}`,
           currentStatus,
