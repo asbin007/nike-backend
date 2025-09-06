@@ -417,23 +417,7 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
         return;
       }
 
-      // Delete related data first (to avoid foreign key constraints)
-      await Promise.all([
-        // Delete user's cart items
-        Cart.destroy({ where: { userId: id } }),
-        // Delete user's orders
-        Order.destroy({ where: { userId: id } }),
-        // Delete chats where user is customer
-        Chat.destroy({ where: { customerId: id } }),
-        // Delete chats where user is admin
-        Chat.destroy({ where: { adminId: id } }),
-        // Delete messages sent by user
-        Message.destroy({ where: { senderId: id } }),
-        // Delete messages received by user
-        Message.destroy({ where: { receiverId: id } })
-      ]);
-
-      // Finally delete the user
+      // Delete the user (CASCADE will handle related data automatically)
       await User.destroy({
         where: { id },
       });

@@ -70,7 +70,7 @@ Collection.hasMany(Shoe, { foreignKey: "collectionId" });
 
 // User x Review
 ProductReview.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(ProductReview, { foreignKey: "userId" });
+User.hasMany(ProductReview, { foreignKey: "userId", onDelete: 'CASCADE' });
 
 // Product x Review
 ProductReview.belongsTo(Shoe, { foreignKey: "productId" });
@@ -82,11 +82,11 @@ Shoe.hasMany(Cart, { foreignKey: "productId" });
 
 // User x Cart
 Cart.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(Cart, { foreignKey: "userId" });
+User.hasMany(Cart, { foreignKey: "userId", onDelete: 'CASCADE' });
 
 // Order x User
 Order.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(Order, { foreignKey: "userId" });
+User.hasMany(Order, { foreignKey: "userId", onDelete: 'CASCADE' });
 
 // Payment x Order
 Order.belongsTo(Payment, { foreignKey: "paymentId" });
@@ -106,8 +106,8 @@ Shoe.hasMany(OrderDetails, { foreignKey: "productId" });
 Chat.belongsTo(User, { as: "Customer", foreignKey: "customerId" });
 Chat.belongsTo(User, { as: "Admin", foreignKey: "adminId" });
 
-User.hasMany(Chat, { as: "CustomerChats", foreignKey: "customerId" });
-User.hasMany(Chat, { as: "AdminChats", foreignKey: "adminId" });
+User.hasMany(Chat, { as: "CustomerChats", foreignKey: "customerId", onDelete: 'CASCADE' });
+User.hasMany(Chat, { as: "AdminChats", foreignKey: "adminId", onDelete: 'CASCADE' });
 
 // Message x Chat
 Message.belongsTo(Chat, { foreignKey: "chatId" });
@@ -117,7 +117,7 @@ Chat.hasMany(Message, { foreignKey: "chatId" });
 Message.belongsTo(User, { as: "Sender", foreignKey: "senderId" });
 Message.belongsTo(User, { as: "Receiver", foreignKey: "receiverId" });
 
-User.hasMany(Message, { as: "SentMessages", foreignKey: "senderId" });
-User.hasMany(Message, { as: "ReceivedMessages", foreignKey: "receiverId" });
+User.hasMany(Message, { as: "SentMessages", foreignKey: "senderId", onDelete: 'CASCADE' });
+User.hasMany(Message, { as: "ReceivedMessages", foreignKey: "receiverId", onDelete: 'CASCADE' });
 
 export default sequelize;
