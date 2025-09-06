@@ -19,9 +19,9 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001", // Admin Panel localhost
   "https://nike-frontend.vercel.app",
-  "https://nike-store-frontend.vercel.app",
-  "https://nike-frontend-git-main-harycan39-2994s-projects.vercel.app",
   "https://nike-frontend-henna.vercel.app",
+  "https://nike-frontend-git-main-harycan39-2994s-projects.vercel.app",
+  "https://nike-store-frontend.vercel.app",
   // Admin Panel URLs
   "https://admin-panel-eight-henna.vercel.app",
   "https://admin-panel-git-master-harycan39-2994s-projects.vercel.app",
