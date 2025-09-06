@@ -417,7 +417,29 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
         return;
       }
 
-      // Delete the user (CASCADE will handle related data automatically)
+      // Delete related chats first to avoid foreign key constraint
+      try {
+        const Chat = require('../database/models/chatModel.js').default;
+        await Chat.destroy({
+          where: { customerId: id }
+        });
+        console.log(`Deleted chats for user ${id}`);
+      } catch (chatError) {
+        console.log('No chats to delete or chat deletion failed:', chatError.message);
+      }
+
+      // Delete any other related data (orders, reviews, etc.)
+      try {
+        const Order = require('../database/models/orderModel.js').default;
+        await Order.destroy({
+          where: { userId: id }
+        });
+        console.log(`Deleted orders for user ${id}`);
+      } catch (orderError) {
+        console.log('No orders to delete or order deletion failed:', orderError.message);
+      }
+
+      // Now delete the user
       await User.destroy({
         where: { id },
       });
@@ -427,12 +449,24 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
         deletedUserId: id,
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Delete user error:', error);
-      res.status(500).json({
-        message: "Internal server error while deleting user",
-        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
-      });
+      
+      // Handle specific database errors
+      if (error.name === 'SequelizeForeignKeyConstraintError') {
+        res.status(400).json({ 
+          message: "Cannot delete user because they have related data (chats, orders, etc.)" 
+        });
+      } else if (error.name === 'SequelizeValidationError') {
+        res.status(400).json({ 
+          message: "Validation error: " + error.message 
+        });
+      } else {
+        res.status(500).json({
+          message: "Internal server error while deleting user",
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+      }
     }
   }
   // login for user for admin panel
