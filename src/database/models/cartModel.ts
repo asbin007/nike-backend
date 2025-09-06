@@ -34,6 +34,13 @@ class Cart extends Model {
   })
   declare color: string; 
 
+  @ForeignKey(() => User)
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  declare userId: string;
+
 }
 
 export default Cart;

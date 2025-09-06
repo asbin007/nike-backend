@@ -7,6 +7,10 @@ import User from "../database/models/userModel.js";
 import bcrypt from "bcrypt";
 import sendMail from "../services/sendMail.js";
 import checkOtpExpiration from "../services/optExpiration.js";
+import Cart from "../database/models/cartModel.js";
+import Order from "../database/models/orderModel.js";
+import Chat from "../database/models/chatModel.js";
+import Message from "../database/models/messageModel.js";
 
 class UserController {
   static async register(req: Request, res: Response): Promise<void> {
@@ -387,38 +391,65 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
     });
   }
 
-  static async deleteUser(req: Request, res: Response) {
-    const { id } = req.params;
+  // Fix for deleteUser function in UserController.js
+  static async deleteUser(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
 
-    
-    if (!id) {
-      res.status(400).json({
-        message: "Please provide Id",
+      if (!id) {
+        res.status(400).json({
+          message: "Please provide Id",
+        });
+        return;
+      }
+      
+      // Find the user to check their role
+      const userToDelete = await User.findOne({ where: { id } });
+
+      if (!userToDelete) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      // Prevent deleting users with Admin role
+      if (userToDelete.role === Role.Admin) {
+        res.status(403).json({ message: "Admins cannot be deleted" });
+        return;
+      }
+
+      // Delete related data first (to avoid foreign key constraints)
+      await Promise.all([
+        // Delete user's cart items
+        Cart.destroy({ where: { userId: id } }),
+        // Delete user's orders
+        Order.destroy({ where: { userId: id } }),
+        // Delete chats where user is customer
+        Chat.destroy({ where: { customerId: id } }),
+        // Delete chats where user is admin
+        Chat.destroy({ where: { adminId: id } }),
+        // Delete messages sent by user
+        Message.destroy({ where: { senderId: id } }),
+        // Delete messages received by user
+        Message.destroy({ where: { receiverId: id } })
+      ]);
+
+      // Finally delete the user
+      await User.destroy({
+        where: { id },
       });
-      return;
+
+      res.status(200).json({
+        message: "User deleted successfully",
+        deletedUserId: id,
+      });
+      
+    } catch (error) {
+      console.error('Delete user error:', error);
+      res.status(500).json({
+        message: "Internal server error while deleting user",
+        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+      });
     }
-    
-  // Find the user to check their role
-  const userToDelete = await User.findOne({ where: { id } });
-
-  if (!userToDelete) {
-    res.status(404).json({ message: "User not found" });
-    return;
-  }
-
-  // Prevent deleting users with Admin role
-  if (userToDelete.role === Role.Admin) {
-    res.status(403).json({ message: "Admins cannot be deleted" });
-    return;
-  }
-    await User.destroy({
-      where: {
-        id,
-      },
-    });
-    res.status(201).json({
-      message: "User delete Successfully",
-    });
   }
   // login for user for admin panel
 

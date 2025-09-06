@@ -14,7 +14,8 @@ router.route("/users").get(errorHandler(UserController.fetchUsers));
 router
   .route("/users/:id")
   .delete(
-    
+    userMiddleware.isUserLoggedIn,
+    userMiddleware.accessTo(Role.Admin),
     errorHandler(UserController.deleteUser)
   );
 router.route("/logins").post(UserController.adminLogin);
