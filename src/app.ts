@@ -23,9 +23,9 @@ const allowedOrigins = [
   "https://nike-frontend-git-main-harycan39-2994s-projects.vercel.app",
   "https://nike-frontend-henna.vercel.app",
   // Admin Panel URLs
-  "https://admin-panel-2588.vercel.app",
-  "https://admin-panel-2588-git-master-harycan39-2994s-projects.vercel.app",
-  "https://admin-panel-2588-7yu7qudks-harycan39-2994s-projects.vercel.app"
+  "https://admin-panel-eight-henna.vercel.app",
+  "https://admin-panel-git-master-harycan39-2994s-projects.vercel.app",
+  "https://admin-panel-8xOxvg6qr-harycan39-2994s-projects.vercel.app"
 ];
 
 // Add FRONTEND_URL if it exists
