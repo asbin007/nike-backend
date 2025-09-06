@@ -60,7 +60,9 @@ function startServer() {
           // Admin Panel URLs
           "https://admin-panel-eight-henna.vercel.app",
           "https://admin-panel-git-master-harycan39-2994s-projects.vercel.app",
-          "https://admin-panel-8xOxvg6qr-harycan39-2994s-projects.vercel.app"
+          "https://admin-panel-8xOxvg6qr-harycan39-2994s-projects.vercel.app",
+          "https://admin-panel-23j3.vercel.app",
+          "https://admin-panel-23j3-kqmogak1x-harycan39-2994s-projects.vercel.app"
         ],
         credentials: true,
         methods: ['GET', 'POST'],
