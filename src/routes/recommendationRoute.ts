@@ -5,13 +5,38 @@ import recommendationController from "../controllers/recommendationController.js
 
 const router: Router = express.Router();
 
-router
-  .route("/")
-  .get(
-    userMiddleware.isUserLoggedIn,
-    errorHandler(recommendationController.getRecommendations)
-  );
+// Personal recommendations (requires login)
+router.get(
+  "/",
+  userMiddleware.isUserLoggedIn,
+  errorHandler(recommendationController.getRecommendations)
+);
+
+// Public collections (no login required)
+router.get(
+  "/trending",
+  errorHandler(recommendationController.getTrendingProducts)
+);
+
+router.get(
+  "/new-arrivals",
+  errorHandler(recommendationController.getNewArrivals)
+);
+
+router.get(
+  "/best-sellers",
+  errorHandler(recommendationController.getBestSellers)
+);
+
+router.get(
+  "/on-sale",
+  errorHandler(recommendationController.getOnSaleProducts)
+);
+
+// Get all collections at once
+router.get(
+  "/collections",
+  errorHandler(recommendationController.getAllCollections)
+);
 
 export default router;
-
-

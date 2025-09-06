@@ -27,6 +27,20 @@ class OrderDetails extends Model {
   })
   declare quantity: number;
 
+  @ForeignKey(() => Order)
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  declare orderId: string;
+
+  @ForeignKey(() => Shoe)
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  declare productId: string;
+
 }
 
 export default OrderDetails;
