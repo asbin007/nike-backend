@@ -1,6 +1,6 @@
 import http from "http";
 import { envConfig } from "./src/config/config.js";
-import app from "./src/app.js";
+import app from "./src/app.ts";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import User from "./src/database/models/userModel.js";

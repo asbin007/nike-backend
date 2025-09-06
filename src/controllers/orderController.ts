@@ -127,7 +127,7 @@ class OrderController {
     // for payment
     if (paymentMethod === PaymentMethod.Khalti) {
       const data = {
-        return_url: process.env.FRONTEND_URL || "https://nike-frontend.vercel.app/",
+        return_url: (process.env.FRONTEND_URL || "https://nike-frontend.vercel.app") + "/payment-success",
         website_url: process.env.FRONTEND_URL || "https://nike-frontend.vercel.app/",
         amount: finalTotalPrice * 100,
         purchase_order_id: orderData.id,
@@ -218,19 +218,31 @@ class OrderController {
         // Continue with order creation even if verification fails
       }
 
-      res.status(201).json({
-        message: "order created successfully",
-        data,
-        url: khaltiResponse.payment_url,
-        pidx: khaltiResponse.pidx,
-        instructions: "After payment completion, call /api/orders/khalti/verify with pidx to update payment status"
-      });
+      // Return appropriate response based on payment method
+      if (paymentMethod === PaymentMethod.Khalti) {
+        res.status(201).json({
+          message: "order created successfully",
+          data,
+          url: khaltiResponse.payment_url,
+          pidx: khaltiResponse.pidx,
+          instructions: "After payment completion, call /api/orders/khalti/verify with pidx to update payment status"
+        });
+      } else {
+        // For COD and other payment methods
+        res.status(201).json({
+          message: "order created successfully",
+          data,
+          // No URL for COD payments - frontend will redirect to success page
+        });
+      }
     } else if (paymentMethod == PaymentMethod.Esewa) {
       // Esewa payment flow will be implemented later
     } else {
-      res.status(200).json({
+      // For COD payments
+      res.status(201).json({
         message: "Order created successfully",
         data,
+        // No URL for COD payments - frontend will redirect to success page
       });
     }
   }

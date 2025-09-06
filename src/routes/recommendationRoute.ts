@@ -39,4 +39,10 @@ router.get(
   errorHandler(recommendationController.getAllCollections)
 );
 
+// Personalized recommendations (no login required for now)
+router.get(
+  "/personalized",
+  errorHandler(recommendationController.getPersonalizedRecommendations)
+);
+
 export default router;

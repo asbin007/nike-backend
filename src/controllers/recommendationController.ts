@@ -7,7 +7,165 @@ import OrderDetails from "../database/models/orderDetaills.js";
 import Cart from "../database/models/cartModel.js";
 import sequelize from "../database/connection.js";
 
+// Helper methods for getAllCollections - Fixed versions
+async function getTrendingProductsDirect(limit: number) {
+  try {
+    // Simplified approach: get recent products, prioritize new ones and discounts
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get products created in last 30 days or marked as new
+    return await Shoe.findAll({
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "categoryName"],
+        },
+      ],
+      where: {
+        [Op.or]: [
+          {
+            createdAt: {
+              [Op.gte]: thirtyDaysAgo,
+            },
+          },
+          {
+            isNew: true,
+          },
+        ],
+        inStock: true,
+      },
+      order: [
+        ["isNew", "DESC"], // New products first
+        ["discount", "DESC"], // Then by discount
+        ["createdAt", "DESC"], // Then by creation date
+      ],
+      limit,
+    });
+  } catch (error) {
+    console.error("Error in getTrendingProductsDirect:", error);
+    // Fallback to simple query
+    return await Shoe.findAll({
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "categoryName"],
+        },
+      ],
+      where: {
+        inStock: true,
+      },
+      order: [["createdAt", "DESC"]],
+      limit,
+    });
+  }
+}
+
+async function getNewArrivalsDirect(limit: number) {
+  return await Shoe.findAll({
+    where: {
+      isNew: true,
+      inStock: true,
+    },
+    include: [
+      {
+        model: Category,
+        attributes: ["id", "categoryName"],
+      },
+    ],
+    order: [["createdAt", "DESC"]],
+    limit,
+  });
+}
+
+async function getBestSellersDirect(limit: number) {
+  try {
+    // Simplified approach: get products that have been ordered at least once
+    const orderedProducts = await OrderDetails.findAll({
+      attributes: ['productId'],
+      group: ['productId'],
+      limit: limit * 2, // Get more to filter later
+    });
+
+    const productIds = orderedProducts.map(product => product.productId);
+
+    // If no orders, fallback to all products sorted by creation date
+    if (productIds.length === 0) {
+      return await Shoe.findAll({
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "categoryName"],
+          },
+        ],
+        where: {
+          inStock: true,
+        },
+        order: [["createdAt", "DESC"]],
+        limit,
+      });
+    }
+
+    // Get products that have been ordered (best sellers)
+    return await Shoe.findAll({
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "categoryName"],
+        },
+      ],
+      where: {
+        id: {
+          [Op.in]: productIds,
+        },
+        inStock: true,
+      },
+      order: [["createdAt", "DESC"]],
+      limit,
+    });
+  } catch (error) {
+    console.error("Error in getBestSellersDirect:", error);
+    // Fallback to simple query
+    return await Shoe.findAll({
+      include: [
+        {
+          model: Category,
+          attributes: ["id", "categoryName"],
+        },
+      ],
+      where: {
+        inStock: true,
+      },
+      order: [["createdAt", "DESC"]],
+      limit,
+    });
+  }
+}
+
+async function getOnSaleProductsDirect(limit: number) {
+  return await Shoe.findAll({
+    where: {
+      discount: {
+        [Op.gte]: 10,
+      },
+      inStock: true,
+    },
+    include: [
+      {
+        model: Category,
+        attributes: ["id", "categoryName"],
+      },
+    ],
+    order: [
+      ["discount", "DESC"],
+      ["createdAt", "DESC"],
+    ],
+    limit,
+  });
+}
+
 class RecommendationController {
+
   /**
    * Get recommendations for the logged-in user based on:
    * 1) All products from last order (if any)
@@ -147,7 +305,7 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method to avoid GROUP BY issues
-      const trendingProducts = await this.getTrendingProductsDirect(limitNum);
+      const trendingProducts = await getTrendingProductsDirect(limitNum);
 
       res.status(200).json({
         message: "Trending products fetched successfully",
@@ -172,7 +330,7 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method
-      const newArrivals = await this.getNewArrivalsDirect(limitNum);
+      const newArrivals = await getNewArrivalsDirect(limitNum);
 
       res.status(200).json({
         message: "New arrivals fetched successfully",
@@ -197,7 +355,7 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method to avoid GROUP BY issues
-      const bestSellers = await this.getBestSellersDirect(limitNum);
+      const bestSellers = await getBestSellersDirect(limitNum);
 
       res.status(200).json({
         message: "Best sellers fetched successfully",
@@ -222,7 +380,7 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method
-      const onSaleProducts = await this.getOnSaleProductsDirect(limitNum);
+      const onSaleProducts = await getOnSaleProductsDirect(limitNum);
 
       res.status(200).json({
         message: "On sale products fetched successfully",
@@ -233,6 +391,163 @@ class RecommendationController {
       console.error("Error fetching on sale products:", error);
       res.status(500).json({
         message: "Failed to fetch on sale products",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  /**
+   * Get personalized recommendations based on user activity
+   */
+  async getPersonalizedRecommendations(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.query;
+      console.log('🎯 Backend: Getting personalized recommendations for user:', userId);
+
+      // Get user's cart history from Cart model
+      const userCartItems = await Cart.findAll({
+        where: userId ? { userId } : {},
+        include: [
+          {
+            model: Shoe,
+            as: 'Shoe',
+            include: [
+              {
+                model: Category,
+                attributes: ["id", "categoryName"],
+              },
+            ],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: 10
+      });
+
+       // Get user's purchase history from OrderDetails model
+       const userOrderDetails = await OrderDetails.findAll({
+         include: [
+           {
+             model: Order,
+             where: userId ? { userId } : {},
+             required: true,
+           },
+           {
+             model: Shoe,
+             include: [
+               {
+                 model: Category,
+                 attributes: ["id", "categoryName"],
+               },
+             ],
+           },
+         ],
+         order: [['createdAt', 'DESC']],
+         limit: 10
+       });
+
+      console.log('🛒 User cart items:', userCartItems.length);
+      console.log('🛍️ User order details:', userOrderDetails.length);
+
+      // Extract product preferences from cart and orders
+      const userPreferences = new Set();
+      const userBrands = new Set();
+      const userCategories = new Set();
+
+      // Analyze cart items
+      userCartItems.forEach((item: any) => {
+        if (item.Shoe) {
+          userPreferences.add(item.Shoe.id);
+          if (item.Shoe.brand) userBrands.add(item.Shoe.brand);
+          if (item.Shoe.Category) userCategories.add(item.Shoe.Category.categoryName);
+        }
+      });
+
+      // Analyze order details
+      userOrderDetails.forEach((detail: any) => {
+        if (detail.Shoe) {
+          userPreferences.add(detail.Shoe.id);
+          if (detail.Shoe.brand) userBrands.add(detail.Shoe.brand);
+          if (detail.Shoe.Category) userCategories.add(detail.Shoe.Category.categoryName);
+        }
+      });
+
+      console.log('🏷️ User preferences:', {
+        brands: Array.from(userBrands),
+        categories: Array.from(userCategories),
+        productIds: Array.from(userPreferences)
+      });
+
+      let recommendations = [];
+
+      if (userPreferences.size > 0) {
+        // Generate recommendations based on user preferences
+        const similarProducts = await Shoe.findAll({
+          include: [
+            {
+              model: Category,
+              attributes: ["id", "categoryName"],
+            },
+          ],
+          where: {
+            id: { [Op.notIn]: Array.from(userPreferences) }, // Exclude already purchased/viewed
+            inStock: true,
+            [Op.or]: [
+              { brand: { [Op.in]: Array.from(userBrands) } },
+              { '$Category.categoryName$': { [Op.in]: Array.from(userCategories) } }
+            ]
+          },
+          order: [
+            ['isNew', 'DESC'],
+            ['discount', 'DESC'],
+            ['createdAt', 'DESC']
+          ],
+          limit: 6
+        });
+
+        recommendations = similarProducts;
+      } else {
+        // Fallback: general recommendations
+        const generalRecommendations = await Shoe.findAll({
+          include: [
+            {
+              model: Category,
+              attributes: ["id", "categoryName"],
+            },
+          ],
+          where: {
+            inStock: true,
+          },
+          order: [
+            ['isNew', 'DESC'],
+            ['discount', 'DESC'],
+            ['createdAt', 'DESC']
+          ],
+          limit: 6
+        });
+
+        recommendations = generalRecommendations;
+      }
+
+      console.log('✅ Generated recommendations:', recommendations.length);
+
+      res.status(200).json({
+        message: "Personalized recommendations fetched successfully",
+        data: recommendations,
+         meta: {
+           total: recommendations.length,
+           userActivity: {
+             cartItems: userCartItems.length,
+             orderDetails: userOrderDetails.length,
+             preferences: userPreferences.size,
+             brands: Array.from(userBrands),
+             categories: Array.from(userCategories)
+           }
+         }
+      });
+    } catch (error) {
+      console.error("Error fetching personalized recommendations:", error);
+      res.status(500).json({
+        message: "Failed to fetch personalized recommendations",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -253,10 +568,10 @@ class RecommendationController {
         bestSellers,
         onSaleProducts,
       ] = await Promise.all([
-        this.getTrendingProductsDirect(limitNum),
-        this.getNewArrivalsDirect(limitNum),
-        this.getBestSellersDirect(limitNum),
-        this.getOnSaleProductsDirect(limitNum),
+        getTrendingProductsDirect(limitNum),
+        getNewArrivalsDirect(limitNum),
+        getBestSellersDirect(limitNum),
+        getOnSaleProductsDirect(limitNum),
       ]);
 
       res.status(200).json({
@@ -291,168 +606,6 @@ class RecommendationController {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
-
-  // Helper methods for getAllCollections - Fixed versions
-  private async getTrendingProductsDirect(limit: number) {
-    try {
-      // Simplified approach: get recent products, prioritize new ones and discounts
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      // Get products created in last 30 days or marked as new
-      return await Shoe.findAll({
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-        ],
-        where: {
-          [Op.or]: [
-            {
-              createdAt: {
-                [Op.gte]: thirtyDaysAgo,
-              },
-            },
-            {
-              isNew: true,
-            },
-          ],
-          inStock: true,
-        },
-        order: [
-          ["isNew", "DESC"], // New products first
-          ["discount", "DESC"], // Then by discount
-          ["createdAt", "DESC"], // Then by creation date
-        ],
-        limit,
-      });
-    } catch (error) {
-      console.error("Error in getTrendingProductsDirect:", error);
-      // Fallback to simple query
-      return await Shoe.findAll({
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-        ],
-        where: {
-          inStock: true,
-        },
-        order: [["createdAt", "DESC"]],
-        limit,
-      });
-    }
-  }
-
-  private async getNewArrivalsDirect(limit: number) {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    return await Shoe.findAll({
-      where: {
-        createdAt: {
-          [Op.gte]: sevenDaysAgo,
-        },
-        inStock: true,
-      },
-      include: [
-        {
-          model: Category,
-          attributes: ["id", "categoryName"],
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-      limit,
-    });
-  }
-
-  private async getBestSellersDirect(limit: number) {
-    try {
-      // Simplified approach: get products that have been ordered at least once
-      const orderedProducts = await OrderDetails.findAll({
-        attributes: ['productId'],
-        group: ['productId'],
-        limit: limit * 2, // Get more to filter later
-      });
-
-      const productIds = orderedProducts.map(product => product.productId);
-
-      // If no orders, fallback to all products sorted by creation date
-      if (productIds.length === 0) {
-        return await Shoe.findAll({
-          include: [
-            {
-              model: Category,
-              attributes: ["id", "categoryName"],
-            },
-          ],
-          where: {
-            inStock: true,
-          },
-          order: [["createdAt", "DESC"]],
-          limit,
-        });
-      }
-
-      // Get products that have been ordered (best sellers)
-      return await Shoe.findAll({
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-        ],
-        where: {
-          id: {
-            [Op.in]: productIds,
-          },
-          inStock: true,
-        },
-        order: [["createdAt", "DESC"]],
-        limit,
-      });
-    } catch (error) {
-      console.error("Error in getBestSellersDirect:", error);
-      // Fallback to simple query
-      return await Shoe.findAll({
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "categoryName"],
-          },
-        ],
-        where: {
-          inStock: true,
-        },
-        order: [["createdAt", "DESC"]],
-        limit,
-      });
-    }
-  }
-
-  private async getOnSaleProductsDirect(limit: number) {
-    return await Shoe.findAll({
-      where: {
-        discount: {
-          [Op.gte]: 10,
-        },
-        inStock: true,
-      },
-      include: [
-        {
-          model: Category,
-          attributes: ["id", "categoryName"],
-        },
-      ],
-      order: [
-        ["discount", "DESC"],
-        ["createdAt", "DESC"],
-      ],
-      limit,
-    });
   }
 }
 
