@@ -19,6 +19,7 @@ class ProductController {
     }
     return Array.isArray(value) ? value.map(String).filter((item) => item) : [];
   }
+ 
   async createProduct(req: Request, res: Response): Promise<void> {
     const {
       name,
@@ -33,76 +34,34 @@ class ProductController {
       inStock,
       isNew,
       description,
-      totalStock,
-
       collectionId,
-      images:imagesUrls
+      totalStock,
     } = req.body;
 
-    if (
-      !name ||
-      !brand ||
-      !price ||
-      !originalPrice ||
-      !categoryId ||
-      !collectionId ||
-      !totalStock ||
-      !description 
-      
-    ) {
-      res.status(400).json({
-        message:
-          "Missing required fields: name, brand, price, originalPrice, category",
-      });
-      return;
-    }
-  // Handle image field (support both uploaded files and URLs)
-  let images: string[] = ProductController.transformToArray(imagesUrls);
-  if (req.files && Array.isArray(req.files)) {
-    // Assuming multer is configured with .array("images")
-    images = [
-      ...images,
-      ...(req.files as Express.Multer.File[]).map(
+    // Handle image field
+    let images: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      images = (req.files as Express.Multer.File[]).map(
         (file) => `/uploads/${file.filename}`
-      ),
-    ];
+      );
     }
-   
 
     const product = await Shoe.create({
       name,
       brand,
-      price: parseFloat(price) || 0,
-      originalPrice: parseFloat(originalPrice) || 0,
-      discount: parseFloat(discount) || 0,
+      price: parseFloat(price),
+      originalPrice: parseFloat(originalPrice),
+      discount: parseFloat(discount),
       categoryId,
-      images: images.length ? images : [], // Ensure image is always an array
-
-      sizes:
-        typeof sizes === "string"
-          ? sizes.split(",")
-          : Array.isArray(sizes)
-          ? sizes
-          : [],
-      colors:
-        typeof colors === "string"
-          ? colors.split(",")
-          : Array.isArray(colors)
-          ? colors
-          : [],
-      features:
-        typeof features === "string"
-          ? features.split(",")
-          : Array.isArray(features)
-          ? features
-          : [],
+      sizes: sizes ? sizes.split(",") : [],
+      colors: colors ? colors.split(",") : [],
+      features: features ? features.split(",") : [],
       inStock: inStock === "true" || inStock === true,
       isNew: isNew === "true" || isNew === true,
-      description: description || "No description",
-
-
+      description,
+      images,
       collectionId,
-      totalStock,
+      totalStock: parseInt(totalStock),
     });
 
     res.status(201).json({
@@ -110,6 +69,7 @@ class ProductController {
       data: product,
     });
   }
+
   async getAllProducts(req: Request, res: Response): Promise<void> {
     const products = await Shoe.findAll({
       

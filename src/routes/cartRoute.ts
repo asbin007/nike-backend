@@ -1,12 +1,14 @@
 import express,{ Router } from "express";
 import userMiddleware, { Role } from "../middleware/userMiddleware.js";
+import { requireCustomer } from "../middleware/roleMiddleware.js";
 import errorHandler from "../services/errorHandler.js";
 import cartController from "../controllers/cartController.js";
 
 
 const router:Router= express.Router()
-router.route('/').post(userMiddleware.isUserLoggedIn,errorHandler(cartController.addToCart)).get(userMiddleware.isUserLoggedIn,errorHandler(cartController.getCart))
-router.route('/:productId').patch(userMiddleware.isUserLoggedIn,errorHandler(cartController.updateCart)).delete(userMiddleware.isUserLoggedIn,errorHandler(cartController.removeFromCart))
+// Cart operations should only be available to customers
+router.route('/').post(requireCustomer, errorHandler(cartController.addToCart)).get(requireCustomer, errorHandler(cartController.getCart))
+router.route('/:productId').patch(requireCustomer, errorHandler(cartController.updateCart)).delete(requireCustomer, errorHandler(cartController.removeFromCart))
 
 
 

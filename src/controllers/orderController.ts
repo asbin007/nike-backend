@@ -664,6 +664,42 @@ class OrderController {
         return;
       }
 
+      // Rule 3: Khalti payments cannot be manually changed to 'unpaid' once verified
+      if (payment.paymentMethod === PaymentMethod.Khalti && currentPaymentStatus === 'paid' && status === 'unpaid') {
+        res.status(400).json({
+          message: "Cannot change Khalti payment status from 'paid' to 'unpaid'. Khalti payments are automatically verified and cannot be manually reversed.",
+          paymentMethod: payment.paymentMethod,
+          currentPaymentStatus,
+          newStatus: status,
+          reason: "Khalti payments are automatically verified and cannot be manually reversed"
+        });
+        return;
+      }
+
+      // Rule 4: COD payments should only be marked as 'paid' when order is delivered or confirmed by admin
+      if (payment.paymentMethod === PaymentMethod.COD && status === 'paid' && order?.orderStatus === OrderStatus.Pending) {
+        res.status(400).json({
+          message: "COD payments should only be marked as 'paid' when order is delivered or confirmed by admin. Please update order status first.",
+          paymentMethod: payment.paymentMethod,
+          currentOrderStatus: order?.orderStatus,
+          newPaymentStatus: status,
+          suggestion: "Update order status to 'delivered' or 'preparation' before marking COD as paid"
+        });
+        return;
+      }
+
+      // Rule 5: Cannot change payment status if order is cancelled
+      if (order?.orderStatus === OrderStatus.Cancelled) {
+        res.status(400).json({
+          message: "Cannot change payment status for cancelled orders",
+          paymentMethod: payment.paymentMethod,
+          currentPaymentStatus,
+          newStatus: status,
+          orderStatus: order?.orderStatus
+        });
+        return;
+      }
+
       // Rule 3: If payment is marked as 'paid', automatically move order to preparation (if it's pending)
       let orderStatusUpdate = null;
       if (status === 'paid' && order?.orderStatus === OrderStatus.Pending) {
@@ -736,36 +772,95 @@ class OrderController {
     }
   }
 
-  async deleteOrder(req:Request, res:Response) : Promise<void>{
-
-      const orderId = req.params.id 
-      const order : OrderWithPaymentId= await Order.findByPk(orderId) as OrderWithPaymentId
-      const paymentId = order?.paymentId
-      if(!order){
-        res.status(404).json({
-          message : "You dont have that orderId order"
-        })
-        return
+  /**
+   * Delete a single order (Admin only)
+   * - Validates order exists
+   * - Prevents deletion of delivered orders
+   * - Deletes order details, order, and payment in proper sequence
+   * - Emits websocket event for real-time updates
+   */
+  async deleteOrder(req: Request, res: Response): Promise<void> {
+    try {
+      const orderId = req.params.id;
+      
+      if (!orderId) {
+        res.status(400).json({
+          message: "Order ID is required"
+        });
+        return;
       }
+
+      // Find the order with payment information
+      const order: OrderWithPaymentId = await Order.findByPk(orderId) as OrderWithPaymentId;
+      
+      if (!order) {
+        res.status(404).json({
+          message: "Order not found with the provided ID"
+        });
+        return;
+      }
+
+      const paymentId = order.paymentId;
+
+      // Check if order can be deleted (business logic)
+      if (order.orderStatus === OrderStatus.Delivered) {
+        res.status(400).json({
+          message: "Cannot delete delivered orders",
+          orderStatus: order.orderStatus
+        });
+        return;
+      }
+
+      // Delete in proper order to maintain referential integrity
+      // 1. Delete order details first
       await OrderDetails.destroy({
-        where : {
-          orderId : orderId
+        where: {
+          orderId: orderId
         }
-      })
-      await Payment.destroy({
-        where : {
-          id : paymentId
-        }
-      })
+      });
+
+      // 2. Delete the order
       await Order.destroy({
-        where : {
-          id : orderId
+        where: {
+          id: orderId
         }
-      })
-      res.status(201).json({
-        message : "Order delete successfully"
-      })
+      });
+
+      // 3. Delete the payment
+      await Payment.destroy({
+        where: {
+          id: paymentId
+        }
+      });
+
+      // Emit websocket event for real-time updates
+      const io = (global as any).io;
+      if (io) {
+        io.emit('orderDeleted', {
+          orderId: orderId,
+          message: 'Order deleted by admin',
+          deletedBy: req.user?.id
+        });
+        console.log('Websocket event emitted for order deletion');
+      }
+
+      res.status(200).json({
+        message: "Order deleted successfully",
+        orderId: orderId,
+        deletedOrderDetails: {
+          orderStatus: order.orderStatus,
+          totalPrice: order.totalPrice,
+          customerName: `${order.firstName} ${order.lastName}`
+        }
+      });
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      res.status(500).json({
+        message: "Error deleting order",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
+  }
 
   // Khalti Webhook Handler
   async khaltiWebhook(req: Request, res: Response): Promise<void> {
@@ -976,6 +1071,102 @@ class OrderController {
       res.status(404).json({
         message: "No order found",
         data: [],
+      });
+    }
+  }
+
+  /**
+   * Delete multiple orders at once (Admin only)
+   * - Validates all orders exist
+   * - Prevents deletion of delivered orders
+   * - Deletes all order details, orders, and payments in proper sequence
+   * - Emits websocket event for real-time updates
+   */
+  async bulkDeleteOrders(req: Request, res: Response): Promise<void> {
+    try {
+      const { orderIds } = req.body;
+      
+      if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+        res.status(400).json({
+          message: "Please provide an array of order IDs to delete"
+        });
+        return;
+      }
+
+      // Validate all orders exist and can be deleted
+      const orders = await Order.findAll({
+        where: {
+          id: orderIds
+        }
+      });
+
+      if (orders.length !== orderIds.length) {
+        const foundIds = orders.map(order => order.id);
+        const notFoundIds = orderIds.filter(id => !foundIds.includes(id));
+        res.status(404).json({
+          message: "Some orders not found",
+          notFoundIds: notFoundIds
+        });
+        return;
+      }
+
+      // Check if any delivered orders are in the list
+      const deliveredOrders = orders.filter(order => order.orderStatus === OrderStatus.Delivered);
+      if (deliveredOrders.length > 0) {
+        res.status(400).json({
+          message: "Cannot delete delivered orders",
+          deliveredOrderIds: deliveredOrders.map(order => order.id)
+        });
+        return;
+      }
+
+      // Get payment IDs for cleanup
+      const paymentIds = orders.map(order => order.paymentId);
+
+      // Delete in proper order
+      // 1. Delete order details
+      await OrderDetails.destroy({
+        where: {
+          orderId: orderIds
+        }
+      });
+
+      // 2. Delete orders
+      await Order.destroy({
+        where: {
+          id: orderIds
+        }
+      });
+
+      // 3. Delete payments
+      await Payment.destroy({
+        where: {
+          id: paymentIds
+        }
+      });
+
+      // Emit websocket event for real-time updates
+      const io = (global as any).io;
+      if (io) {
+        io.emit('ordersBulkDeleted', {
+          orderIds: orderIds,
+          count: orderIds.length,
+          message: `${orderIds.length} orders deleted by admin`,
+          deletedBy: req.user?.id
+        });
+        console.log('Websocket event emitted for bulk order deletion');
+      }
+
+      res.status(200).json({
+        message: `${orderIds.length} orders deleted successfully`,
+        deletedOrderIds: orderIds,
+        count: orderIds.length
+      });
+    } catch (error) {
+      console.error('Error bulk deleting orders:', error);
+      res.status(500).json({
+        message: "Error bulk deleting orders",
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }

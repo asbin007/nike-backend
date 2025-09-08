@@ -513,7 +513,12 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
       res.status(201).json({
         message: "Admin logged in successfully",
         token,
-      
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        }
       });
     } catch (error) {
       console.error(error);

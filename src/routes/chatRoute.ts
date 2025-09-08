@@ -3,32 +3,33 @@
     import errorHandler from "../services/errorHandler.js";
 import chatController from "../controllers/chatController.js";
 import userMiddleware from "../middleware/userMiddleware.js";
+import { requireCustomer, requireAdmin } from "../middleware/roleMiddleware.js";
 import { upload } from "../middleware/multer.js";
 
     const router: Router = express.Router();
 
-    // POST: Create or get an existing chat
-    router.post("/get-or-create",userMiddleware.isUserLoggedIn, errorHandler(chatController.getOrCreateChat));
+    // POST: Create or get an existing chat - customers only
+    router.post("/get-or-create", requireCustomer, errorHandler(chatController.getOrCreateChat));
 
-    // GET: Fetch all messages in a chat
-    router.get("/:chatId/messages", userMiddleware.isUserLoggedIn,errorHandler(chatController.getChatMessages));
+    // GET: Fetch all messages in a chat - customers only
+    router.get("/:chatId/messages", requireCustomer, errorHandler(chatController.getChatMessages));
 
-    // POST: Send a message (with photo upload support)
-    router.post("/send-message", userMiddleware.isUserLoggedIn, upload.single('image'), errorHandler(chatController.sendMessage));
+    // POST: Send a message (with photo upload support) - customers only
+    router.post("/send-message", requireCustomer, upload.single('image'), errorHandler(chatController.sendMessage));
 
-    // GET: Get all chats for current user
-    router.get("/all", userMiddleware.isUserLoggedIn, errorHandler(chatController.getAllChats));
+    // GET: Get all chats for current user - customers only
+    router.get("/all", requireCustomer, errorHandler(chatController.getAllChats));
 
-    // GET: Get unread message count
-    router.get("/unread/count", userMiddleware.isUserLoggedIn, errorHandler(chatController.getUnreadCount));
+    // GET: Get unread message count - customers only
+    router.get("/unread/count", requireCustomer, errorHandler(chatController.getUnreadCount));
 
-    // GET: Get all admin users (for customer to choose from)
-    router.get("/admins", userMiddleware.isUserLoggedIn, errorHandler(chatController.getAdminUsers));
+    // GET: Get all admin users (for customer to choose from) - customers only
+    router.get("/admins", requireCustomer, errorHandler(chatController.getAdminUsers));
 
     // GET: Get chat statistics (admin only)
-    router.get("/stats", userMiddleware.isUserLoggedIn, errorHandler(chatController.getChatStats));
+    router.get("/stats", requireAdmin, errorHandler(chatController.getChatStats));
 
-    // POST: Mark messages as read
-    router.post("/:chatId/mark-read", userMiddleware.isUserLoggedIn, errorHandler(chatController.markMessageAsRead));
+    // POST: Mark messages as read - customers only
+    router.post("/:chatId/mark-read", requireCustomer, errorHandler(chatController.markMessageAsRead));
 
     export default router;
