@@ -306,7 +306,8 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method to avoid GROUP BY issues
-      const trendingProducts = await this.getTrendingProductsDirect(limitNum);
+      const controller = new RecommendationController();
+      const trendingProducts = await controller.getTrendingProductsDirect(limitNum);
 
       res.status(200).json({
         message: "Trending products fetched successfully",
@@ -331,7 +332,8 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method
-      const newArrivals = await this.getNewArrivalsDirect(limitNum);
+      const controller = new RecommendationController();
+      const newArrivals = await controller.getNewArrivalsDirect(limitNum);
 
       res.status(200).json({
         message: "New arrivals fetched successfully",
@@ -356,7 +358,8 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method to avoid GROUP BY issues
-      const bestSellers = await this.getBestSellersDirect(limitNum);
+      const controller = new RecommendationController();
+      const bestSellers = await controller.getBestSellersDirect(limitNum);
 
       res.status(200).json({
         message: "Best sellers fetched successfully",
@@ -381,7 +384,8 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 12;
       
       // Use the direct method
-      const onSaleProducts = await this.getOnSaleProductsDirect(limitNum);
+      const controller = new RecommendationController();
+      const onSaleProducts = await controller.getOnSaleProductsDirect(limitNum);
 
       res.status(200).json({
         message: "On sale products fetched successfully",
@@ -563,16 +567,17 @@ class RecommendationController {
       const limitNum = parseInt(limit as string) || 8;
 
       // Get all collections in parallel using direct queries instead of helper methods
+      const controller = new RecommendationController();
       const [
         trendingProducts,
         newArrivals,
         bestSellers,
         onSaleProducts,
       ] = await Promise.all([
-        this.getTrendingProductsDirect(limitNum),
-        this.getNewArrivalsDirect(limitNum),
-        this.getBestSellersDirect(limitNum),
-        this.getOnSaleProductsDirect(limitNum),
+        controller.getTrendingProductsDirect(limitNum),
+        controller.getNewArrivalsDirect(limitNum),
+        controller.getBestSellersDirect(limitNum),
+        controller.getOnSaleProductsDirect(limitNum),
       ]);
 
       res.status(200).json({
