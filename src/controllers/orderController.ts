@@ -403,6 +403,16 @@ class OrderController {
   async fetchMyOrderDetail(req: Request, res: Response): Promise<void> {
     const orderId = req.params.id;
     const userId = req.user?.id;
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(orderId)) {
+      res.status(400).json({
+        message: "Invalid order ID format",
+        error: "Order ID must be a valid UUID"
+      });
+      return;
+    }
     const orders = await OrderDetails.findAll({
       where: {
         orderId,

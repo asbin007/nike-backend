@@ -407,11 +407,14 @@ class RecommendationController {
   async getPersonalizedRecommendations(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.query;
-      console.log('🎯 Backend: Getting personalized recommendations for user:', userId);
+      const authenticatedUserId = req.user?.id;
+      const finalUserId = userId || authenticatedUserId;
+      
+      console.log('🎯 Backend: Getting personalized recommendations for user:', finalUserId);
 
       // Get user's cart history from Cart model
       const userCartItems = await Cart.findAll({
-        where: userId ? { userId } : {},
+        where: finalUserId ? { userId: finalUserId } : {},
         include: [
           {
             model: Shoe,
@@ -433,7 +436,7 @@ class RecommendationController {
          include: [
            {
              model: Order,
-             where: userId ? { userId } : {},
+             where: finalUserId ? { userId: finalUserId } : {},
              required: true,
            },
            {

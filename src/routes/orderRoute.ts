@@ -7,10 +7,7 @@
 
     const router:Router= express.Router()
 
-    // Customer order operations
-    router.route("/").post(requireCustomer, errorHandler(orderController.createOrder)).get(requireCustomer, errorHandler(orderController.fetchMyOrder))
-    
-    // Public route for fetching all orders (used by admin panel)
+    // Public route for fetching all orders (used by admin panel) - MUST be before /:id
     router.route("/all").get( errorHandler(orderController.fetchAllOrders))
 
     // Khalti Payment Verification - customers only
@@ -18,6 +15,9 @@
 
     // Khalti Webhook (no authentication is required as this is called by Khalti)
     router.route("/khalti-webhook").post(errorHandler(orderController.khaltiWebhook))
+
+    // Customer order operations
+    router.route("/").post(requireCustomer, errorHandler(orderController.createOrder)).get(requireCustomer, errorHandler(orderController.fetchMyOrder))
 
     // Order details - customers only
     router.route('/:id').get(requireCustomer, errorHandler(orderController.fetchMyOrderDetail))
