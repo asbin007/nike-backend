@@ -53,10 +53,7 @@ sequelize
   .then(() => console.log("✅ Database connected successfully"))
   .catch((err) => console.error("❌ Unable to connect to the database:", err));
 
-sequelize
-  .sync({ force: false, alter: false })
-  .then(() => console.log("✅ Database synchronized successfully"))
-  .catch((err) => console.error("❌ Error syncing database:", err));
+// Database sync is handled in server.ts to avoid duplicate calls
 
 // ===== DATABASE RELATIONSHIPS =====
 

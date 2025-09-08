@@ -27,19 +27,25 @@ function startServer() {
         try {
           // First try to authenticate
           await sequelize.authenticate();
-          console.log("Database connection verified");
+          console.log("✅ Database connection verified");
 
           // Then sync the database - use force: false and alter: false for production
           await sequelize.sync({ force: false, alter: false });
-          console.log("Database synced successfully");
-        } catch (error) {
+          console.log("✅ Database synchronized successfully");
+        } catch (error: any) {
           console.error("Error syncing database:", error);
 
-          // In production, continue without database sync
-          if (process.env.NODE_ENV === "production") {
-            console.log("Continuing without database sync in production...");
+          // Check if it's a unique constraint error (table already exists)
+          if (error.name === 'SequelizeUniqueConstraintError' || 
+              (error.parent && error.parent.code === '23505')) {
+            console.log("⚠️ Database tables already exist, continuing...");
           } else {
-            throw error; // Re-throw in development
+            // In production, continue without database sync for other errors
+            if (process.env.NODE_ENV === "production") {
+              console.log("Continuing without database sync in production...");
+            } else {
+              throw error; // Re-throw in development
+            }
           }
         }
       } else {
