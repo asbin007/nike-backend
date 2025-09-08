@@ -23,6 +23,7 @@
     router.route('/:id').get(requireCustomer, errorHandler(orderController.fetchMyOrderDetail))
     
     // Admin-only operations
+    router.route("/admin/:id").get(requireAdmin, errorHandler(orderController.fetchMyOrderDetail))
     router.route("/admin/change-status/:id").patch(requireAdmin, errorHandler(orderController.changeOrderStatus))
     router.route("/admin/change-payment-status/:id").patch(requireAdmin, errorHandler(orderController.changePaymentStatus))
     router.route("/admin/delete-order/:id").delete(requireAdmin, errorHandler(orderController.deleteOrder))
