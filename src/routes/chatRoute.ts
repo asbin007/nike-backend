@@ -14,8 +14,14 @@ import { upload } from "../middleware/multer.js";
     // GET: Fetch all messages in a chat - customers only
     router.get("/:chatId/messages", requireCustomer, errorHandler(chatController.getChatMessages));
 
+    // GET: Fetch all messages in a chat - admin only
+    router.get("/admin/:chatId/messages", requireAdmin, errorHandler(chatController.getChatMessages));
+
     // POST: Send a message (with photo upload support) - customers only
     router.post("/send-message", requireCustomer, upload.single('image'), errorHandler(chatController.sendMessage));
+
+    // POST: Send a message (with photo upload support) - admin only
+    router.post("/admin/send-message", requireAdmin, upload.single('image'), errorHandler(chatController.sendMessage));
 
     // GET: Get all chats for current user - customers only
     router.get("/all", requireCustomer, errorHandler(chatController.getAllChats));
