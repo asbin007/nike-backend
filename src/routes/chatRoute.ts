@@ -20,6 +20,9 @@ import { upload } from "../middleware/multer.js";
     // GET: Get all chats for current user - customers only
     router.get("/all", requireCustomer, errorHandler(chatController.getAllChats));
 
+    // GET: Get all chats for admin - admin only
+    router.get("/admin/all", requireAdmin, errorHandler(chatController.getAllChats));
+
     // GET: Get unread message count - customers only
     router.get("/unread/count", requireCustomer, errorHandler(chatController.getUnreadCount));
 
