@@ -26,6 +26,7 @@ class ProductController {
       brand,
       price,
       originalPrice,
+      costPrice,
       categoryId,
       discount,
       sizes,
@@ -51,6 +52,7 @@ class ProductController {
       brand,
       price: parseFloat(price),
       originalPrice: parseFloat(originalPrice),
+      costPrice: parseFloat(costPrice),
       discount: parseFloat(discount),
       categoryId,
       sizes: sizes ? sizes.split(",") : [],
@@ -137,6 +139,7 @@ class ProductController {
       brand,
       price,
       originalPrice,
+      costPrice,
       categoryId,
       discount,
       sizes,
@@ -170,13 +173,16 @@ class ProductController {
     // If no new images provided, retain existing images
     images = images.length ? images : product.images;
 
-    await product.update({
+    const updateData = {
       name: name ?? product.name,
       brand: brand ?? product.brand,
       price: isNaN(parseFloat(price)) ? product.price : parseFloat(price),
       originalPrice: isNaN(parseFloat(originalPrice))
         ? product.originalPrice
         : parseFloat(originalPrice),
+      costPrice: isNaN(parseFloat(costPrice))
+        ? product.costPrice
+        : parseFloat(costPrice),
       discount: isNaN(parseFloat(discount))
         ? product.discount
         : parseFloat(discount),
@@ -196,7 +202,9 @@ class ProductController {
       images: imageUrls,
       collectionId,
       totalStock: totalStock || product.totalStock,
-    });
+    };
+    
+    await product.update(updateData);
 
     res.status(200).json({
       message: "Product updated successfully",
@@ -220,6 +228,67 @@ class ProductController {
       message: "Product deleted successfully",
       data: product,
     });
+  }
+
+  // Get profit analysis for all products
+  async getProfitAnalysis(req: Request, res: Response): Promise<void> {
+    try {
+      const products = await Shoe.findAll({
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "categoryName"],
+          },
+          {
+            model: Collection,
+            attributes: ["id", "collectionName"],
+          },
+        ],
+      });
+
+      const profitAnalysis = products.map((product) => {
+        const sellingPrice = product.price;
+        const costPrice = product.costPrice;
+        const profit = sellingPrice - costPrice;
+        const profitPercentage = costPrice > 0 ? ((profit / costPrice) * 100) : 0;
+
+        return {
+          id: product.id,
+          name: product.name,
+          brand: product.brand,
+          sellingPrice,
+          costPrice,
+          profit,
+          profitPercentage: Math.round(profitPercentage * 100) / 100,
+          totalStock: product.totalStock,
+          totalProfit: profit * (product.totalStock as number),
+          category: (product as any).Category?.categoryName,
+          collection: (product as any).Collection?.collectionName,
+        };
+      });
+
+      // Calculate total profit
+      const totalProfit = profitAnalysis.reduce((sum, product) => sum + product.totalProfit, 0);
+      const totalProducts = products.length;
+      const averageProfitPercentage = profitAnalysis.reduce((sum, product) => sum + product.profitPercentage, 0) / totalProducts;
+
+      res.status(200).json({
+        message: "Profit analysis fetched successfully",
+        data: {
+          products: profitAnalysis,
+          summary: {
+            totalProducts,
+            totalProfit: Math.round(totalProfit * 100) / 100,
+            averageProfitPercentage: Math.round(averageProfitPercentage * 100) / 100,
+          },
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Error fetching profit analysis",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 
 }

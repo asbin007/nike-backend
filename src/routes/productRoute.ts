@@ -13,6 +13,14 @@ router
   .get(productController.getAllProducts);
 
 router
+  .route("/profit-analysis")
+  .get(
+    userMiddleware.isUserLoggedIn,
+    userMiddleware.accessTo(Role.Admin),
+    errorHandler(productController.getProfitAnalysis)
+  );
+
+router
   .route("/:id")
   .delete(
     userMiddleware.isUserLoggedIn,
