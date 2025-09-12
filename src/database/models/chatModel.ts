@@ -25,11 +25,11 @@ class Chat extends Model{
   @Column(DataType.UUID)
   declare customerId: string;
 
-  @BelongsTo(() => User, "adminId")
-  admin!: User;
+  @BelongsTo(() => User, { foreignKey: "adminId", as: "Admin" })
+  Admin!: User;
 
-  @BelongsTo(() => User, "customerId")
-  customer!: User;
+  @BelongsTo(() => User, { foreignKey: "customerId", as: "Customer" })
+  Customer!: User;
 }
 
 export default Chat;

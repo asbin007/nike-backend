@@ -1,8 +1,8 @@
-import { Request, Response } from "express"
+import { Request, Response, NextFunction } from "express"
 
 
 const errorHandler = (fn:Function)=>{
-    return (req:Request,res:Response)=>{
+    return (req:Request,res:Response,next:NextFunction)=>{
         fn(req,res).catch((err:Error)=>{
             console.log(err)
             res.status(500).json({

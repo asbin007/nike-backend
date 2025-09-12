@@ -174,14 +174,21 @@ class ChatController {
       });
       return;
     }
-    const where =
-      role === "admin" ? { adminId: userId } : { customerId: userId };
+    
+    // For admin, show all chats; for customer, show only their chats
+    const where = role === "admin" ? {} : { customerId: userId };
+    
     const chats = await Chat.findAll({
       where,
       include: [
         {
           model: User,
           as: role === "admin" ? "Customer" : "Admin",
+          attributes: ["id", "username", "email", "role"],
+        },
+        {
+          model: User,
+          as: role === "admin" ? "Admin" : "Customer",
           attributes: ["id", "username", "email", "role"],
         },
         {

@@ -18,7 +18,9 @@ function startServer() {
     console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     console.log(`Port: ${envConfig.port}`);
 
-    const server = app.listen(Number(port), host, async () => {
+    const server = http.createServer(app);
+    
+    server.listen(Number(port), host, async () => {
       console.log(`Server is running on port ${envConfig.port}`);
       console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 

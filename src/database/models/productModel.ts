@@ -52,6 +52,7 @@ class Shoe extends Model {
   @Column({
     type: DataType.FLOAT,
     allowNull: false,
+    field: 'cost_price'
   })
   declare costPrice: number;
 

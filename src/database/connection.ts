@@ -99,10 +99,7 @@ Shoe.hasMany(OrderDetails, { foreignKey: "productId" });
 
 // ===== CHAT RELATIONSHIPS =====
 
-// Chat x Users
-Chat.belongsTo(User, { as: "Customer", foreignKey: "customerId" });
-Chat.belongsTo(User, { as: "Admin", foreignKey: "adminId" });
-
+// Chat x Users (using aliases defined in model)
 User.hasMany(Chat, { as: "CustomerChats", foreignKey: "customerId", onDelete: 'CASCADE' });
 User.hasMany(Chat, { as: "AdminChats", foreignKey: "adminId", onDelete: 'CASCADE' });
 
