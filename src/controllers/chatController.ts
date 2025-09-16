@@ -167,16 +167,23 @@ class ChatController {
 
   // get all chats
   async getAllChats(req: Request, res: Response) {
+    console.log("🔍 ChatController.getAllChats - Request received");
+    console.log("🔍 ChatController.getAllChats - User data:", req.user);
+    
     const { id: userId, role } = req.user || {};
     if (!userId || !role) {
+      console.log("❌ ChatController.getAllChats - Missing user ID or role");
       res.status(400).json({
         message: "User ID and role are required",
       });
       return;
     }
     
+    console.log("🔍 ChatController.getAllChats - User ID:", userId, "Role:", role);
+    
     // For admin, show all chats; for customer, show only their chats
     const where = role === "admin" ? {} : { customerId: userId };
+    console.log("🔍 ChatController.getAllChats - Query where clause:", where);
     
     const chats = await Chat.findAll({
       where,
@@ -200,6 +207,9 @@ class ChatController {
       ],
       order: [["updatedAt", "DESC"]],
     });
+
+    console.log("✅ ChatController.getAllChats - Found chats:", chats.length);
+    console.log("✅ ChatController.getAllChats - Returning response");
 
     res.status(200).json({
       message: "Chats fetched successfully",

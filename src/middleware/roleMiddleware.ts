@@ -14,7 +14,11 @@ export const requireRole = (allowedRoles: Role[]) => {
     try {
       const token = req.headers.authorization;
       
+      console.log("🔍 Role middleware - Authorization header:", token ? `${token.substring(0, 20)}...` : "No token");
+      console.log("🔍 Role middleware - Allowed roles:", allowedRoles);
+      
       if (!token) {
+        console.log("❌ Role middleware - No token provided");
         res.status(401).json({
           message: "Access denied. No token provided.",
         });
@@ -23,19 +27,24 @@ export const requireRole = (allowedRoles: Role[]) => {
 
       // Verify token
       const decoded = jwt.verify(token, envConfig.jwtSecret as string) as any;
+      console.log("🔍 Role middleware - Token decoded successfully, userId:", decoded.userId);
       
       // Get user from database
       const user = await User.findByPk(decoded.userId);
       
       if (!user) {
+        console.log("❌ Role middleware - User not found in database");
         res.status(401).json({
           message: "Access denied. User not found.",
         });
         return;
       }
 
+      console.log("🔍 Role middleware - User found:", { id: user.id, username: user.username, role: user.role });
+
       // Check if user role is allowed
       if (!allowedRoles.includes(user.role as Role)) {
+        console.log("❌ Role middleware - Role not allowed:", { userRole: user.role, allowedRoles });
         res.status(403).json({
           message: `Access denied. Required roles: ${allowedRoles.join(', ')}. Your role: ${user.role}`,
         });
@@ -50,9 +59,10 @@ export const requireRole = (allowedRoles: Role[]) => {
         role: user.role,
       };
 
+      console.log("✅ Role middleware - Authentication successful, proceeding to next middleware");
       next();
     } catch (error) {
-      console.error("Role middleware error:", error);
+      console.error("❌ Role middleware error:", error);
       res.status(401).json({
         message: "Access denied. Invalid token.",
       });
