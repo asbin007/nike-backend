@@ -20,6 +20,7 @@ router
   );
 router.route("/logins").post(UserController.adminLogin);
 router.route("/admin/register").post(UserController.registerAdmin);
+router.route("/super-admin/register").post(UserController.registerSuperAdmin);
 router.route("/super-admin/login").post(UserController.superAdminLogin);
 
 export default router;

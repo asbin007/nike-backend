@@ -583,6 +583,61 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
     }
   }
 
+  // Super Admin Registration
+  static async registerSuperAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      const { username, email, password } = req.body;
+
+      if (!username || !email || !password) {
+        res.status(400).json({
+          message: "Username, email, and password are required",
+        });
+        return;
+      }
+
+      // Check if super admin already exists
+      const existingSuperAdmin = await User.findOne({
+        where: { 
+          email: email,
+          role: 'super_admin'
+        }
+      });
+
+      if (existingSuperAdmin) {
+        res.status(400).json({
+          message: "Super admin with this email already exists",
+        });
+        return;
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create super admin
+      const superAdmin = await User.create({
+        username,
+        email,
+        password: hashedPassword,
+        role: 'super_admin',
+        isVerified: true
+      });
+
+      res.status(201).json({
+        message: "Super admin registered successfully",
+        userId: superAdmin.id,
+        username: superAdmin.username,
+        email: superAdmin.email,
+        role: superAdmin.role,
+      });
+    } catch (error) {
+      console.error("Super admin registration error:", error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error,
+      });
+    }
+  }
+
   // Super Admin Login
   static async superAdminLogin(req: Request, res: Response): Promise<void> {
     try {
@@ -595,12 +650,11 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
         return;
       }
 
-      // Find super admin user
+      // Find super admin user (also allow admin with super@gmail.com to login as super admin)
       const superAdmin = await User.findOne({
-        where: { 
-          email: email,
-          role: 'super_admin'
-        }
+        where: email === 'super@gmail.com' 
+          ? { email: email, role: ['admin', 'super_admin'] }
+          : { email: email, role: 'super_admin' }
       });
 
       if (!superAdmin) {
@@ -643,7 +697,7 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
           id: superAdmin.id,
           username: superAdmin.username,
           email: superAdmin.email,
-          role: superAdmin.role,
+          role: 'super_admin', // Always return super_admin role for super admin login
           isVerified: superAdmin.isVerified,
         },
       });
