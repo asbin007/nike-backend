@@ -6,6 +6,7 @@ import User from "../database/models/userModel.js";
 export enum Role {
   Admin = "admin",
   Customer = "customer",
+  SuperAdmin = "super_admin",
 }
 
 // Middleware to check if user has specific role
@@ -74,4 +75,7 @@ export const requireRole = (allowedRoles: Role[]) => {
 export const requireCustomer = requireRole([Role.Customer]);
 
 // Middleware specifically for admin-only routes  
-export const requireAdmin = requireRole([Role.Admin]);
+export const requireAdmin = requireRole([Role.Admin, Role.SuperAdmin]);
+
+// Middleware specifically for super admin-only routes
+export const requireSuperAdmin = requireRole([Role.SuperAdmin]);

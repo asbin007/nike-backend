@@ -583,6 +583,79 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
     }
   }
 
+  // Super Admin Login
+  static async superAdminLogin(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        res.status(400).json({
+          message: "Email and password are required",
+        });
+        return;
+      }
+
+      // Find super admin user
+      const superAdmin = await User.findOne({
+        where: { 
+          email: email,
+          role: 'super_admin'
+        }
+      });
+
+      if (!superAdmin) {
+        res.status(401).json({
+          message: "Super admin not found",
+        });
+        return;
+      }
+
+      // Check if super admin is verified
+      if (!superAdmin.isVerified) {
+        res.status(401).json({
+          message: "Super admin account not verified",
+        });
+        return;
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, superAdmin.password);
+      if (!isPasswordValid) {
+        res.status(401).json({
+          message: "Invalid credentials",
+        });
+        return;
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: superAdmin.id },
+        envConfig.jwtSecret as Secret,
+        {
+          expiresIn: "30d",
+        }
+      );
+
+      res.status(200).json({
+        message: "Super admin login successful",
+        token: token,
+        user: {
+          id: superAdmin.id,
+          username: superAdmin.username,
+          email: superAdmin.email,
+          role: superAdmin.role,
+          isVerified: superAdmin.isVerified,
+        },
+      });
+    } catch (error) {
+      console.error("Super admin login error:", error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error,
+      });
+    }
+  }
+
 }
 
 

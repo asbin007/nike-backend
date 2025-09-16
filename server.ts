@@ -34,6 +34,13 @@ function startServer() {
           // Then sync the database - use force: false and alter: false for production
           await sequelize.sync({ force: false, alter: false });
           console.log("✅ Database synchronized successfully");
+
+          // Run seeders
+          const adminSeeder = (await import("./src/adminSeeder.js")).default;
+          const superAdminSeeder = (await import("./src/superAdminSeeder.js")).default;
+          
+          await adminSeeder();
+          await superAdminSeeder();
         } catch (error: any) {
           console.error("Error syncing database:", error);
 
