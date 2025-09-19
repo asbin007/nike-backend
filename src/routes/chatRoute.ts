@@ -16,6 +16,9 @@ import { upload } from "../middleware/multer.js";
 
     // GET: Fetch all messages in a chat - admin only
     router.get("/admin/:chatId/messages", requireAdmin, errorHandler(chatController.getChatMessages));
+    
+    // GET: Fetch messages for specific chat (alternative pattern for frontend compatibility)
+    router.get("/:chatId", requireAdmin, errorHandler(chatController.getChatMessages));
 
     // POST: Send a message (with photo upload support) - customers only
     router.post("/send-message", requireCustomer, upload.single('image'), errorHandler(chatController.sendMessage));

@@ -47,122 +47,184 @@ class ChatController {
 
   // get all messages in a chat
   async getChatMessages(req: Request, res: Response) {
-    const { chatId } = req.params;
-    const userId = req.user?.id;
-    
-    if (!chatId) {
-      res.status(400).json({
-        message: "Chat ID is required",
-      });
-      return;
-    }
-
-    // Verify user has access to this chat or not
-    const chat = await Chat.findOne({
-      where: { 
-        id: chatId,
-        [req.user?.role === 'admin' ? 'adminId' : 'customerId']: userId 
+    try {
+      console.log("🔍 getChatMessages - Request received");
+      console.log("🔍 getChatMessages - Params:", req.params);
+      console.log("🔍 getChatMessages - User:", req.user);
+      
+      const { chatId } = req.params;
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+      
+      if (!chatId) {
+        console.log("❌ getChatMessages - No chatId provided");
+        res.status(400).json({
+          message: "Chat ID is required",
+        });
+        return;
       }
-    });
 
-    if (!chat) {
-      res.status(403).json({
-        message: "Access denied to this chat",
+      console.log("🔍 getChatMessages - Looking for chat with ID:", chatId);
+
+      // For admin, allow access to any chat; for customer, only their chats
+      let chat;
+      if (userRole === 'admin') {
+        chat = await Chat.findOne({
+          where: { id: chatId }
+        });
+      } else {
+        chat = await Chat.findOne({
+          where: { 
+            id: chatId,
+            customerId: userId 
+          }
+        });
+      }
+
+      if (!chat) {
+        console.log("❌ getChatMessages - Chat not found or access denied");
+        res.status(403).json({
+          message: "Access denied to this chat",
+        });
+        return;
+      }
+
+      console.log("✅ getChatMessages - Chat found:", chat.id);
+
+      const messages = await Message.findAll({
+        where: { chatId },
+        include: [
+          {
+            model: User,
+            as: "Sender",
+            attributes: ["id", "username", "email", "role"],
+          },
+          {
+            model: User,
+            as: "Receiver",
+            attributes: ["id", "username", "email", "role"],
+          },
+        ],
+        order: [["createdAt", "ASC"]],
       });
-      return;
+
+      console.log("✅ getChatMessages - Found messages:", messages.length);
+
+      // Mark messages as read for the current user
+      await Message.update(
+        { read: true },
+        { where: { chatId, receiverId: userId, read: false } }
+      );
+
+      console.log("✅ getChatMessages - Messages marked as read");
+
+      res.status(200).json({
+        message: "Messages retrieved successfully",
+        data: messages,
+      });
+    } catch (error) {
+      console.error("❌ getChatMessages - Error:", error);
+      res.status(500).json({
+        message: "Internal server error while fetching messages",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
-
-    const messages = await Message.findAll({
-      where: { chatId },
-      include: [
-        {
-          model: User,
-          as: "Sender",
-          attributes: ["id", "username", "email", "role"],
-        },
-        {
-          model: User,
-          as: "Receiver",
-          attributes: ["id", "username", "email", "role"],
-        },
-      ],
-      order: [["createdAt", "ASC"]],
-    });
-
-    // Mark messages as read for the current user
-    await Message.update(
-      { read: true },
-      { where: { chatId, receiverId: userId, read: false } }
-    );
-
-    res.status(200).json({
-      message: "Messages retrieved successfully",
-      data: messages,
-    });
   }
 
   // send message in a chat
   async sendMessage(req: Request, res: Response) {
-    const { chatId, content } = req.body;
-    const senderId = req.user?.id;
-    const imageUrl = (req as any).file?.path; // Get uploaded image URL
-    
-    if (!chatId || (!content && !imageUrl) || !senderId) {
-      res.status(400).json({
-        message: "Chat ID, content or image, and sender ID are required",
-      });
-      return;
-    }
-
-    // Verify user has access to this chat
-    const chat = await Chat.findOne({
-      where: { 
-        id: chatId,
-        [req.user?.role === 'admin' ? 'adminId' : 'customerId']: senderId 
+    try {
+      console.log("🔍 sendMessage - Request received");
+      console.log("🔍 sendMessage - Body:", req.body);
+      console.log("🔍 sendMessage - User:", req.user);
+      
+      const { chatId, content } = req.body;
+      const senderId = req.user?.id;
+      const userRole = req.user?.role;
+      const imageUrl = (req as any).file?.path; // Get uploaded image URL
+      
+      if (!chatId || (!content && !imageUrl) || !senderId) {
+        console.log("❌ sendMessage - Missing required fields");
+        res.status(400).json({
+          message: "Chat ID, content or image, and sender ID are required",
+        });
+        return;
       }
-    });
 
-    if (!chat) {
-      res.status(403).json({
-        message: "Access denied to this chat",
+      console.log("🔍 sendMessage - Looking for chat with ID:", chatId);
+
+      // For admin, allow access to any chat; for customer, only their chats
+      let chat;
+      if (userRole === 'admin') {
+        chat = await Chat.findOne({
+          where: { id: chatId }
+        });
+      } else {
+        chat = await Chat.findOne({
+          where: { 
+            id: chatId,
+            customerId: senderId 
+          }
+        });
+      }
+
+      if (!chat) {
+        console.log("❌ sendMessage - Chat not found or access denied");
+        res.status(403).json({
+          message: "Access denied to this chat",
+        });
+        return;
+      }
+
+      console.log("✅ sendMessage - Chat found:", chat.id);
+
+      const receiverId = userRole === 'admin' ? chat.customerId : chat.adminId;
+
+      console.log("🔍 sendMessage - Creating message with receiverId:", receiverId);
+
+      const message = await Message.create({
+        chatId,
+        senderId,
+        receiverId,
+        content: content || "",
+        imageUrl: imageUrl || null,
+        read: false,
       });
-      return;
+
+      console.log("✅ sendMessage - Message created with ID:", message.id);
+
+      // Update chat's updatedAt timestamp
+      await chat.update({ updatedAt: new Date() });
+
+      const messageWithUser = await Message.findOne({
+        where: { id: message.id },
+        include: [
+          {
+            model: User,
+            as: "Sender",
+            attributes: ["id", "username", "email", "role"],
+          },
+          {
+            model: User,
+            as: "Receiver",
+            attributes: ["id", "username", "email", "role"],
+          },
+        ],
+      });
+
+      console.log("✅ sendMessage - Message with user data retrieved");
+
+      res.status(200).json({
+        message: "Message sent successfully",
+        data: messageWithUser,
+      });
+    } catch (error) {
+      console.error("❌ sendMessage - Error:", error);
+      res.status(500).json({
+        message: "Internal server error while sending message",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
-
-    const receiverId = req.user?.role === 'admin' ? chat.customerId : chat.adminId;
-
-    const message = await Message.create({
-      chatId,
-      senderId,
-      receiverId,
-      content: content || "",
-      imageUrl: imageUrl || null,
-      read: false,
-    });
-
-    // Update chat's updatedAt timestamp
-    await chat.update({ updatedAt: new Date() });
-
-    const messageWithUser = await Message.findOne({
-      where: { id: message.id },
-      include: [
-        {
-          model: User,
-          as: "Sender",
-          attributes: ["id", "username", "email", "role"],
-        },
-        {
-          model: User,
-          as: "Receiver",
-          attributes: ["id", "username", "email", "role"],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      message: "Message sent successfully",
-      data: messageWithUser,
-    });
   }
 
   // get all chats
