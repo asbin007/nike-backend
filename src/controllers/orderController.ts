@@ -624,7 +624,8 @@ class OrderController {
   }
 
   async changePaymentStatus(req: Request, res: Response): Promise<void> {
-    const { paymentId, status } = req.body;
+    const paymentId = req.params.id; // Get paymentId from URL parameter
+    const { status } = req.body;
     
     if (!paymentId || !status) {
       res.status(400).json({
