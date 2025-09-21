@@ -11,6 +11,7 @@ import Cart from "../database/models/cartModel.js";
 import Order from "../database/models/orderModel.js";
 import Chat from "../database/models/chatModel.js";
 import Message from "../database/models/messageModel.js";
+import { Op } from "sequelize";
 
 class UserController {
   static async register(req: Request, res: Response): Promise<void> {
@@ -706,6 +707,460 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
       res.status(500).json({
         message: "Internal server error",
         error: error,
+      });
+    }
+  }
+
+  // Admin Management Functions (Super Admin Only)
+  
+  // Get all admins with pagination and search
+  static async getAllAdmins(req: Request, res: Response): Promise<void> {
+    try {
+      const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
+      const offset = (Number(page) - 1) * Number(limit);
+
+      // Build where clause
+      let whereClause: any = {
+        role: 'admin'
+      };
+
+      // Add search functionality
+      if (search) {
+        whereClause = {
+          ...whereClause,
+          [Op.or]: [
+            { username: { [Op.iLike]: `%${search}%` } },
+            { email: { [Op.iLike]: `%${search}%` } }
+          ]
+        };
+      }
+
+      // Add status filter
+      if (status === 'active') {
+        whereClause.isVerified = true;
+      } else if (status === 'inactive') {
+        whereClause.isVerified = false;
+      }
+
+      const { count, rows: admins } = await User.findAndCountAll({
+        where: whereClause,
+        attributes: [
+          'id', 
+          'username', 
+          'email', 
+          'role', 
+          'isVerified', 
+          'createdAt', 
+          'updatedAt'
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: Number(limit),
+        offset: offset
+      });
+
+      const totalPages = Math.ceil(count / Number(limit));
+
+      res.status(200).json({
+        success: true,
+        message: "Admins fetched successfully",
+        data: {
+          admins,
+          pagination: {
+            currentPage: Number(page),
+            totalPages,
+            totalAdmins: count,
+            hasNext: Number(page) < totalPages,
+            hasPrev: Number(page) > 1
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Get single admin by ID
+  static async getAdminById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const admin = await User.findOne({
+        where: { 
+          id: id,
+          role: 'admin'
+        },
+        attributes: [
+          'id', 
+          'username', 
+          'email', 
+          'role', 
+          'isVerified', 
+          'createdAt', 
+          'updatedAt'
+        ]
+      });
+
+      if (!admin) {
+        res.status(404).json({
+          success: false,
+          message: "Admin not found"
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Admin fetched successfully",
+        data: admin
+      });
+    } catch (error) {
+      console.error("Error fetching admin:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Update admin
+  static async updateAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { username, email, isVerified, password } = req.body;
+
+      const admin = await User.findOne({
+        where: { 
+          id: id,
+          role: 'admin'
+        }
+      });
+
+      if (!admin) {
+        res.status(404).json({
+          success: false,
+          message: "Admin not found"
+        });
+        return;
+      }
+
+      // Check if email is being changed and if it already exists
+      if (email && email !== admin.email) {
+        const existingAdmin = await User.findOne({
+          where: { 
+            email: email,
+            role: 'admin',
+            id: { [Op.ne]: id }
+          }
+        });
+
+        if (existingAdmin) {
+          res.status(400).json({
+            success: false,
+            message: "Admin with this email already exists"
+          });
+          return;
+        }
+      }
+
+      // Update fields
+      const updateData: any = {};
+      if (username) updateData.username = username;
+      if (email) updateData.email = email;
+      if (typeof isVerified === 'boolean') updateData.isVerified = isVerified;
+      if (password) {
+        updateData.password = await bcrypt.hash(password, 10);
+      }
+
+      await admin.update(updateData);
+
+      res.status(200).json({
+        success: true,
+        message: "Admin updated successfully",
+        data: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email,
+          role: admin.role,
+          isVerified: admin.isVerified,
+          updatedAt: admin.updatedAt
+        }
+      });
+    } catch (error) {
+      console.error("Error updating admin:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Promote customer to admin
+  static async promoteToAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        res.status(400).json({
+          success: false,
+          message: "User ID is required"
+        });
+        return;
+      }
+
+      const user = await User.findOne({
+        where: { 
+          id: userId,
+          role: 'customer'
+        }
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: "Customer not found"
+        });
+        return;
+      }
+
+      // Update user role to admin
+      await user.update({
+        role: 'admin',
+        isVerified: true
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Customer promoted to admin successfully",
+        data: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified
+        }
+      });
+    } catch (error) {
+      console.error("Error promoting user to admin:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Demote admin to customer
+  static async demoteToCustomer(req: Request, res: Response): Promise<void> {
+    try {
+      const { adminId } = req.params;
+
+      const admin = await User.findOne({
+        where: { 
+          id: adminId,
+          role: 'admin'
+        }
+      });
+
+      if (!admin) {
+        res.status(404).json({
+          success: false,
+          message: "Admin not found"
+        });
+        return;
+      }
+
+      // Update admin role to customer
+      await admin.update({
+        role: 'customer',
+        isVerified: false
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Admin demoted to customer successfully",
+        data: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email,
+          role: admin.role,
+          isVerified: admin.isVerified
+        }
+      });
+    } catch (error) {
+      console.error("Error demoting admin to customer:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Delete admin (soft delete - demote to customer)
+  static async deleteAdmin(req: Request, res: Response): Promise<void> {
+    try {
+      const { adminId } = req.params;
+
+      const admin = await User.findOne({
+        where: { 
+          id: adminId,
+          role: 'admin'
+        }
+      });
+
+      if (!admin) {
+        res.status(404).json({
+          success: false,
+          message: "Admin not found"
+        });
+        return;
+      }
+
+      // Soft delete - change role to customer instead of hard delete
+      await admin.update({
+        role: 'customer',
+        isVerified: false
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Admin deleted successfully",
+        data: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email,
+          role: admin.role
+        }
+      });
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Get admin statistics
+  static async getAdminStats(req: Request, res: Response): Promise<void> {
+    try {
+      const totalAdmins = await User.count({
+        where: { role: 'admin' }
+      });
+
+      const activeAdmins = await User.count({
+        where: { 
+          role: 'admin',
+          isVerified: true
+        }
+      });
+
+      const inactiveAdmins = await User.count({
+        where: { 
+          role: 'admin',
+          isVerified: false
+        }
+      });
+
+      const totalCustomers = await User.count({
+        where: { role: 'customer' }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Admin statistics fetched successfully",
+        data: {
+          totalAdmins,
+          activeAdmins,
+          inactiveAdmins,
+          totalCustomers,
+          adminToCustomerRatio: totalCustomers > 0 ? (totalAdmins / totalCustomers).toFixed(2) : 0
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
+  // Bulk operations
+  static async bulkUpdateAdmins(req: Request, res: Response): Promise<void> {
+    try {
+      const { adminIds, action, data } = req.body;
+
+      if (!adminIds || !Array.isArray(adminIds) || adminIds.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: "Admin IDs array is required"
+        });
+        return;
+      }
+
+      if (!action) {
+        res.status(400).json({
+          success: false,
+          message: "Action is required"
+        });
+        return;
+      }
+
+      let updateData: any = {};
+      let message = "";
+
+      switch (action) {
+        case 'activate':
+          updateData = { isVerified: true };
+          message = "Admins activated successfully";
+          break;
+        case 'deactivate':
+          updateData = { isVerified: false };
+          message = "Admins deactivated successfully";
+          break;
+        case 'demote':
+          updateData = { role: 'customer', isVerified: false };
+          message = "Admins demoted to customers successfully";
+          break;
+        default:
+          res.status(400).json({
+            success: false,
+            message: "Invalid action"
+          });
+          return;
+      }
+
+      const [affectedCount] = await User.update(updateData, {
+        where: {
+          id: { [Op.in]: adminIds },
+          role: 'admin'
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message,
+        data: {
+          affectedCount,
+          adminIds
+        }
+      });
+    } catch (error) {
+      console.error("Error in bulk update:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   }
