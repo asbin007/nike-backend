@@ -259,7 +259,10 @@ class UserController {
 
 
       const token = jwt.sign(
-        { userId: user.id },
+        { 
+          userId: user.id,
+          role: user.role
+        },
         envConfig.jwtSecret as Secret,
         {
           expiresIn: "30d",
@@ -271,6 +274,7 @@ class UserController {
         id: user.id, 
         username: user.username,
         email: user.email,
+        role: user.role,
         token: token,
       
       });
@@ -504,7 +508,10 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
       }
 
       const token = jwt.sign(
-        { userId: user.id },
+        { 
+          userId: user.id,
+          role: user.role
+        },
         envConfig.jwtSecret as Secret,
         {
           expiresIn: "30d",
@@ -682,9 +689,12 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
         return;
       }
 
-      // Generate JWT token
+      // Generate JWT token with role
       const token = jwt.sign(
-        { userId: superAdmin.id },
+        { 
+          userId: superAdmin.id,
+          role: 'super_admin'
+        },
         envConfig.jwtSecret as Secret,
         {
           expiresIn: "30d",
