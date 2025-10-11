@@ -9,7 +9,7 @@ interface IData{
 }
 const sendMail= async(data:IData)=>{
     try {
-        const transporter=nodemailer.createTransport({
+        const transporter = nodemailer.createTransport({
             service:'gmail',
             auth:{
                 user:envConfig.email,
