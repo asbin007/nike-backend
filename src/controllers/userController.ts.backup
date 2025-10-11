@@ -258,18 +258,7 @@ class UserController {
 
 
 
-     
-        // Check if user is verified (OTP verification required)
-        if (!user.isVerified) {
-          res.status(403).json({
-            message: "Please verify your email with OTP before logging in. Check your email for verification code.",
-            requiresOtp: true,
-            email: user.email
-          });
-          return;
-        }
-
-         const token = jwt.sign(
+      const token = jwt.sign(
         { 
           userId: user.id,
           role: user.role
@@ -1190,4 +1179,3 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
 
 
 export default UserController;
-
