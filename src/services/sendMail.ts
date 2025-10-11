@@ -1,36 +1,96 @@
 import nodemailer from "nodemailer";
 import { envConfig } from "../config/config.js";
 
+// Alternative email configurations
+const emailConfigs = {
+    gmail: {
+        service: 'gmail',
+        auth: {
+            user: envConfig.email,
+            pass: envConfig.password,
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        rateDelta: 20000,
+        rateLimit: 5
+    },
+    // Alternative: Mailgun SMTP (if you have Mailgun credentials)
+    mailgun: {
+        host: 'smtp.mailgun.org',
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.MAILGUN_SMTP_USER || envConfig.email,
+            pass: process.env.MAILGUN_SMTP_PASSWORD || envConfig.password,
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+    }
+};
+
 interface IData{
     to:string;
     subject:string;
     text:string;
     html?:string;
 }
-const sendMail= async(data:IData)=>{
-    try {
-        const transporter = nodemailer.createTransport({
-            service:'gmail',
-            auth:{
-                user:envConfig.email,
-                pass:envConfig.password,
+const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
+    // Try different email providers in order
+    const providers = ['gmail', 'mailgun'] as const;
+    
+    for (const provider of providers) {
+        console.log(`Trying email provider: ${provider}`);
+        
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                console.log(`Attempting to send email via ${provider} (attempt ${attempt}/${retries})`);
+                
+                const transporter = nodemailer.createTransport(emailConfigs[provider]);
 
+                // Verify connection before sending
+                await transporter.verify();
+
+                const mailOptions={
+                    from: envConfig.email,
+                    to: data.to,
+                    subject: data.subject,
+                    text: data.text,
+                    html: data.html
+                };
+
+                await transporter.sendMail(mailOptions);
+                console.log(`Email sent successfully via ${provider}`);
+                
+                // Close the transporter
+                transporter.close();
+                return true;
+
+            } catch (error: any) {
+                console.error(`Email sending via ${provider} failed (attempt ${attempt}/${retries}):`, error.message);
+                
+                if (attempt === retries && provider === providers[providers.length - 1]) {
+                    console.error("All email sending attempts with all providers failed");
+                    return false;
+                }
+                
+                if (attempt < retries) {
+                    // Wait before retrying (exponential backoff)
+                    const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s...
+                    console.log(`Waiting ${waitTime}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
             }
-        })
-        const mailOptions={
-            from:envConfig.email,
-            to:data.to,
-            subject:data.subject,
-            text:data.text,
-            html:data.html
         }
-        await transporter.sendMail(mailOptions)
-        console.log("Email sent successfully")
-        return true
-
-    } catch (error) {
-        console.error("Email sent failed",error)
-        return false
+        
+        // If we reach here, all attempts with current provider failed, try next provider
+        console.log(`All attempts with ${provider} failed, trying next provider...`);
     }
+    
+    return false;
 }
 export default sendMail;
