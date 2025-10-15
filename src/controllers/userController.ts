@@ -66,7 +66,7 @@ class UserController {
       try {
         await sendMail({
           to: email,
-          subject: "Registration OTP - Nike Store",
+          subject: "Registration OTP - ShowMart",
           text: `Your registration OTP is: ${otp}. This OTP will expire in 10 minutes.`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

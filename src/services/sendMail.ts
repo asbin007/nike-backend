@@ -30,6 +30,7 @@ const emailConfigs = {
         connectionTimeout: 60000,
         greetingTimeout: 30000,
         socketTimeout: 60000,
+        
     }
 };
 
@@ -60,7 +61,11 @@ const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
                     to: data.to,
                     subject: data.subject,
                     text: data.text,
-                    html: data.html
+                    html: data.html,
+                    requireTLS: true,
+                    secure: false,
+
+
                 };
 
                 await transporter.sendMail(mailOptions);
