@@ -5,6 +5,9 @@ import { envConfig } from "../config/config.js";
 const emailConfigs = {
     gmail: {
         service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
             user: envConfig.email,
             pass: envConfig.password,
