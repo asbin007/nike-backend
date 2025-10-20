@@ -54,7 +54,8 @@ interface IData{
     html?:string;
 }
 const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
-    // Try different email providers in order (Resend first)
+    // Try different email providers in order (Resend first - works on Render)
+    // Gmail and Mailgun SMTP are blocked on Render, so they're fallbacks for local dev only
     const providers = ['resend', 'gmail', 'mailgun'] as const;
     
     for (const provider of providers) {
