@@ -1,8 +1,18 @@
 import nodemailer from "nodemailer";
+import { ResendTransport } from '@documenso/nodemailer-resend';
+import { createTransport } from 'nodemailer';
 import { envConfig } from "../config/config.js";
 
-// Alternative email configurations
+// Email configurations with Resend as primary
 const emailConfigs = {
+    resend: {
+        // Resend transport configuration
+        createTransport: () => createTransport(
+            ResendTransport.makeTransport({
+                apiKey: envConfig.resend_api_key || '',
+            })
+        )
+    },
     gmail: {
         service: 'gmail',
         host: 'smtp.gmail.com',
@@ -44,8 +54,8 @@ interface IData{
     html?:string;
 }
 const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
-    // Try different email providers in order
-    const providers = ['gmail', 'mailgun'] as const;
+    // Try different email providers in order (Resend first)
+    const providers = ['resend', 'gmail', 'mailgun'] as const;
     
     for (const provider of providers) {
         console.log(`Trying email provider: ${provider}`);
@@ -54,7 +64,10 @@ const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
             try {
                 console.log(`Attempting to send email via ${provider} (attempt ${attempt}/${retries})`);
                 
-                const transporter = nodemailer.createTransport(emailConfigs[provider]);
+                // Handle Resend transport differently
+                const transporter = provider === 'resend' 
+                    ? emailConfigs.resend.createTransport()
+                    : nodemailer.createTransport(emailConfigs[provider]);
 
                 // Verify connection before sending
                 await transporter.verify();
