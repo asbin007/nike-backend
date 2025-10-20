@@ -53,7 +53,7 @@ interface IData{
     text:string;
     html?:string;
 }
-const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
+const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     // Try different email providers in order (Resend first - works on Render)
     // Gmail and Mailgun SMTP are blocked on Render, so they're fallbacks for local dev only
     const providers = ['resend', 'gmail', 'mailgun'] as const;
@@ -101,8 +101,8 @@ const sendMail = async(data: IData, retries: number = 3): Promise<boolean> => {
                 }
                 
                 if (attempt < retries) {
-                    // Wait before retrying (exponential backoff)
-                    const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s...
+                    // Wait before retrying (shorter backoff for faster response)
+                    const waitTime = attempt * 2000; // 2s, 4s...
                     console.log(`Waiting ${waitTime}ms before retry...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }

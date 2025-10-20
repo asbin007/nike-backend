@@ -62,9 +62,12 @@ class UserController {
         isVerified: false,
       });
 
-      // Send OTP email
+      // Send OTP email with timeout
       try {
-        await sendMail({
+        console.log(`Sending OTP email to ${email}...`);
+        
+        // Set a timeout for email sending (30 seconds)
+        const emailPromise = sendMail({
           to: email,
           subject: "Registration OTP - ShowMart",
           text: `Your registration OTP is: ${otp}. This OTP will expire in 10 minutes.`,
@@ -83,18 +86,34 @@ class UserController {
           `
         });
 
+        const emailTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email sending timeout')), 30000)
+        );
+
+        const emailResult = await Promise.race([emailPromise, emailTimeout]);
+        
+        if (emailResult) {
+          console.log(`OTP email sent successfully to ${email}`);
+          res.status(201).json({
+            message: "User registered successfully. Please check your email for OTP.",
+            userId: newUser.id,
+            email: newUser.email,
+            requiresOtp: true,
+          });
+        } else {
+          throw new Error('Email sending failed');
+        }
+      } catch (emailError) {
+        console.error("Email sending failed:", emailError);
+        
+        // Don't delete user immediately - let them try to verify OTP manually
+        // The OTP is still in the database
         res.status(201).json({
-          message: "User registered successfully. Please check your email for OTP.",
+          message: "User registered successfully. Please check your email for OTP. If you don't receive it, try logging in to resend.",
           userId: newUser.id,
           email: newUser.email,
           requiresOtp: true,
-        });
-      } catch (emailError) {
-        console.error("Email sending failed:", emailError);
-        // Delete the user if email sending fails
-        await newUser.destroy();
-        res.status(500).json({
-          message: "Registration failed. Please try again.",
+          emailWarning: "Email delivery may be delayed. Please check your spam folder or try logging in to resend OTP.",
         });
       }
     } catch (error) {

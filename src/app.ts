@@ -83,7 +83,18 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ 
     message: "Nike Backend is running successfully!",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development"
+    environment: process.env.NODE_ENV || "development",
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: "1.0.0"
+  });
+});
+
+// Quick health check for Render
+app.get("/api/ping", (req, res) => {
+  res.status(200).json({ 
+    status: "ok",
+    timestamp: new Date().toISOString()
   });
 });
 
