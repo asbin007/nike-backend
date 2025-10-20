@@ -74,7 +74,8 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                 await transporter.verify();
 
                 const mailOptions={
-                    from: envConfig.email,
+                    // Prefer verified sender for Resend; fallback to envConfig.email
+                    from: envConfig.resend_from || envConfig.email,
                     to: data.to,
                     subject: data.subject,
                     text: data.text,

@@ -22,6 +22,7 @@ admin: process.env.ADMIN_EMAIL,
     cloud_api_key: process.env.CLOUDINARY_API_KEY,
     cloud_api_secret: process.env.CLOUDINARY_API_SECRET,
     resend_api_key: process.env.RESEND_API_KEY,
+    resend_from: process.env.RESEND_FROM,
 }
 
 // Validate required environment variables
