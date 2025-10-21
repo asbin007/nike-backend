@@ -3,16 +3,17 @@ import { ResendTransport } from '@documenso/nodemailer-resend';
 import { createTransport } from 'nodemailer';
 import { envConfig } from "../config/config.js";
 
-// Email configurations with Resend as primary
+// Email configurations optimized for Render.com deployment
 const emailConfigs = {
     resend: {
-        // Resend transport configuration
+        // Resend transport configuration - primary for production
         createTransport: () => createTransport(
             ResendTransport.makeTransport({
                 apiKey: envConfig.resend_api_key || '',
             })
         )
     },
+    // Gmail configuration - only for local development
     gmail: {
         service: 'gmail',
         host: 'smtp.gmail.com',
@@ -22,16 +23,16 @@ const emailConfigs = {
             user: envConfig.email,
             pass: envConfig.password,
         },
-        connectionTimeout: 60000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        rateDelta: 20000,
-        rateLimit: 5
+        connectionTimeout: 30000, // Reduced timeout for faster failure
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
+        pool: false, // Disable pooling on Render
+        maxConnections: 1,
+        maxMessages: 1,
+        rateDelta: 5000,
+        rateLimit: 1
     },
-    // Alternative: Mailgun SMTP (if you have Mailgun credentials)
+    // Mailgun SMTP configuration - fallback option
     mailgun: {
         host: 'smtp.mailgun.org',
         port: 587,
@@ -40,10 +41,12 @@ const emailConfigs = {
             user: process.env.MAILGUN_SMTP_USER || envConfig.email,
             pass: process.env.MAILGUN_SMTP_PASSWORD || envConfig.password,
         },
-        connectionTimeout: 60000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
-        
+        connectionTimeout: 30000,
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
+        pool: false,
+        maxConnections: 1,
+        maxMessages: 1,
     }
 };
 
@@ -54,9 +57,14 @@ interface IData{
     html?:string;
 }
 const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
-    // Try different email providers in order (Resend first - works on Render)
-    // Gmail and Mailgun SMTP are blocked on Render, so they're fallbacks for local dev only
-    const providers = ['resend', 'gmail', 'mailgun'] as const;
+    // Determine environment and provider priority
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+    const providers = isProduction 
+        ? ['resend'] as const  // Only use Resend in production
+        : ['resend', 'gmail', 'mailgun'] as const; // Try all in development
+    
+    console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
+    console.log(`Available providers: ${providers.join(', ')}`);
     
     for (const provider of providers) {
         console.log(`Trying email provider: ${provider}`);
@@ -70,23 +78,31 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     ? emailConfigs.resend.createTransport()
                     : nodemailer.createTransport(emailConfigs[provider]);
 
-                // Verify connection before sending
-                await transporter.verify();
+                // Skip connection verification for Resend to avoid timeout issues
+                if (provider !== 'resend') {
+                    await transporter.verify();
+                }
 
-                const mailOptions={
-                    // Prefer verified sender for Resend; fallback to envConfig.email
-                    from: envConfig.resend_from || envConfig.email,
+                const mailOptions = {
+                    // Use proper sender based on provider
+                    from: provider === 'resend' 
+                        ? (envConfig.resend_from || 'noreply@yourdomain.com')
+                        : envConfig.email,
                     to: data.to,
                     subject: data.subject,
                     text: data.text,
                     html: data.html,
-                    requireTLS: true,
-                    secure: false,
-
-
+                    requireTLS: provider !== 'resend',
+                    secure: provider === 'gmail'
                 };
 
-                await transporter.sendMail(mailOptions);
+                // Add timeout for email sending
+                const sendPromise = transporter.sendMail(mailOptions);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Email sending timeout')), 25000)
+                );
+
+                await Promise.race([sendPromise, timeoutPromise]);
                 console.log(`Email sent successfully via ${provider}`);
                 
                 // Close the transporter
@@ -96,14 +112,15 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
             } catch (error: any) {
                 console.error(`Email sending via ${provider} failed (attempt ${attempt}/${retries}):`, error.message);
                 
+                // If this is the last attempt for the last provider, fail completely
                 if (attempt === retries && provider === providers[providers.length - 1]) {
                     console.error("All email sending attempts with all providers failed");
                     return false;
                 }
                 
+                // If this is not the last attempt for current provider, wait and retry
                 if (attempt < retries) {
-                    // Wait before retrying (shorter backoff for faster response)
-                    const waitTime = attempt * 2000; // 2s, 4s...
+                    const waitTime = attempt * 1000; // 1s, 2s...
                     console.log(`Waiting ${waitTime}ms before retry...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
@@ -111,7 +128,9 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
         }
         
         // If we reach here, all attempts with current provider failed, try next provider
-        console.log(`All attempts with ${provider} failed, trying next provider...`);
+        if (provider !== providers[providers.length - 1]) {
+            console.log(`All attempts with ${provider} failed, trying next provider...`);
+        }
     }
     
     return false;

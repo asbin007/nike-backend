@@ -36,10 +36,26 @@ const requiredEnvVars = [
     'ADMIN_USERNAME'
 ];
 
+// Optional but recommended for production email
+const recommendedEnvVars = [
+    'RESEND_API_KEY',
+    'RESEND_FROM'
+];
+
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+const missingRecommendedVars = recommendedEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
     console.error('Missing required environment variables:', missingEnvVars);
-    console.error('Please set these environment variables in Vercel dashboard');
+    console.error('Please set these environment variables in your hosting dashboard');
     process.exit(1);
+}
+
+// Warning for recommended email configuration
+if (missingRecommendedVars.length > 0 && (process.env.NODE_ENV === 'production' || process.env.RENDER)) {
+    console.warn('⚠️  Missing recommended environment variables for production email:', missingRecommendedVars);
+    console.warn('📧 For production email functionality, please configure:');
+    console.warn('   - RESEND_API_KEY: Your Resend API key');
+    console.warn('   - RESEND_FROM: Verified sender email (e.g., noreply@yourdomain.com)');
+    console.warn('   Visit: https://resend.com/domains to verify your domain');
 }
