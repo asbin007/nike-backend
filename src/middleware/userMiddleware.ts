@@ -29,8 +29,9 @@ class UserMiddleware {
     res: Response,
     next: NextFunction
   ): Promise<void> {
-    // receive tokenpc
-    const token = req.headers.authorization;
+    // receive token
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
     if (!token) {
       res.status(403).json({
         message: "Token must be provided",
@@ -42,8 +43,8 @@ class UserMiddleware {
       envConfig.jwtSecret as string,
       async (err, result: any) => {
         if (err) {
-          res.status(403).json({
-            message: "Invalid token !!!",
+          res.status(401).json({
+            message: "Access denied. Invalid token.",
           });
         } else {
           const userData = await User.findByPk(result.userId);

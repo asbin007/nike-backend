@@ -13,24 +13,27 @@ const emailConfigs = {
             })
         )
     },
-    // Gmail configuration - only for local development
+    // Gmail configuration - optimized for Render.com
     gmail: {
         service: 'gmail',
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587, // Use port 587 for better compatibility
+        secure: false, // Use STARTTLS instead of SSL
         auth: {
             user: envConfig.email,
             pass: envConfig.password,
         },
-        connectionTimeout: 30000, // Reduced timeout for faster failure
-        greetingTimeout: 15000,
-        socketTimeout: 30000,
+        connectionTimeout: 20000, // Reduced timeout for faster failure
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
         pool: false, // Disable pooling on Render
         maxConnections: 1,
         maxMessages: 1,
-        rateDelta: 5000,
-        rateLimit: 1
+        rateDelta: 3000,
+        rateLimit: 1,
+        tls: {
+            rejectUnauthorized: false // Allow self-signed certificates
+        }
     },
     // Mailgun SMTP configuration - fallback option
     mailgun: {
@@ -59,8 +62,10 @@ interface IData{
 const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     // Determine environment and provider priority
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+    const hasResendConfig = envConfig.resend_api_key && envConfig.resend_from;
+    
     const providers = isProduction 
-        ? ['resend'] as const  // Only use Resend in production
+        ? (hasResendConfig ? ['resend'] as const : ['gmail'] as const)  // Use Gmail if Resend not configured
         : ['resend', 'gmail', 'mailgun'] as const; // Try all in development
     
     console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
