@@ -86,7 +86,7 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                 const mailOptions = {
                     // Use proper sender based on provider
                     from: provider === 'resend' 
-                        ? (envConfig.resend_from || 'noreply@yourdomain.com')
+                        ? (envConfig.resend_from || 'onboarding@resend.dev')
                         : envConfig.email,
                     to: data.to,
                     subject: data.subject,
