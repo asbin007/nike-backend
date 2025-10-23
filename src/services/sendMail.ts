@@ -74,9 +74,9 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     // Check if recipient is the verified email for Resend
     const isVerifiedEmail = data.to === 'asbingamer@gmail.com';
     
-    // For production, try multiple providers with better fallback
+    // For production, prioritize Resend if configured, otherwise use Gmail
     const providers = isProduction 
-        ? (hasResendConfig && isVerifiedEmail ? ['resend', 'gmail', 'mailgun'] as const : ['gmail', 'mailgun', 'resend'] as const)
+        ? (hasResendConfig ? ['resend', 'gmail', 'mailgun'] as const : ['gmail', 'mailgun'] as const)
         : ['resend', 'gmail', 'mailgun'] as const;
     
     console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
@@ -86,9 +86,9 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     for (const provider of providers) {
         console.log(`Trying email provider: ${provider}`);
         
-        // Skip Resend if trying to send to unverified email in production
-        if (provider === 'resend' && isProduction && !isVerifiedEmail) {
-            console.log(`Skipping Resend for unverified email in production`);
+        // Try Resend for all emails if configured
+        if (provider === 'resend' && !hasResendConfig) {
+            console.log(`Skipping Resend - not configured`);
             continue;
         }
         
@@ -109,7 +109,7 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                 const mailOptions = {
                     // Use proper sender based on provider
                     from: provider === 'resend' 
-                        ? (envConfig.resend_from || 'onboarding@resend.dev')
+                        ? (envConfig.resend_from || 'noreply@resend.dev')
                         : envConfig.email,
                     to: data.to,
                     subject: data.subject,
@@ -125,8 +125,9 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     setTimeout(() => reject(new Error('Email sending timeout')), 15000)
                 );
 
-                await Promise.race([sendPromise, timeoutPromise]);
-                console.log(`Email sent successfully via ${provider}`);
+                const result = await Promise.race([sendPromise, timeoutPromise]);
+                console.log(`✅ Email sent successfully via ${provider}`);
+                console.log(`📧 Email details: To=${data.to}, Subject=${data.subject}`);
                 
                 // Close the transporter
                 transporter.close();
@@ -135,10 +136,18 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
             } catch (error: any) {
                 console.error(`Email sending via ${provider} failed (attempt ${attempt}/${retries}):`, error.message);
                 
-                // Special handling for Resend domain verification error
-                if (provider === 'resend' && error.message.includes('validation_error')) {
-                    console.log(`Resend domain not verified, trying next provider...`);
-                    break; // Skip retries for this provider
+                // Special handling for Resend errors
+                if (provider === 'resend') {
+                    if (error.message.includes('validation_error')) {
+                        console.log(`❌ Resend validation error: ${error.message}`);
+                        console.log(`💡 Tip: Verify your domain at https://resend.com/domains`);
+                        break; // Skip retries for this provider
+                    } else if (error.message.includes('rate_limit')) {
+                        console.log(`⏰ Resend rate limit exceeded, trying next provider...`);
+                        break; // Skip retries for this provider
+                    } else {
+                        console.log(`❌ Resend error: ${error.message}`);
+                    }
                 }
                 
                 // Special handling for Gmail connection timeout
