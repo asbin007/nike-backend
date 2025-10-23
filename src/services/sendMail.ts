@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import { ResendTransport } from '@documenso/nodemailer-resend';
 import { createTransport } from 'nodemailer';
 import { envConfig } from "../config/config.js";
+import { logOTPToConsole } from "./simpleEmailService.js";
 
 // Email configurations optimized for Render.com deployment
 const emailConfigs = {
@@ -17,23 +18,29 @@ const emailConfigs = {
     gmail: {
         service: 'gmail',
         host: 'smtp.gmail.com',
-        port: 587, // Use port 587 for better compatibility
-        secure: false, // Use STARTTLS instead of SSL
+        port: 465, // Use port 465 for SSL (more reliable on Render)
+        secure: true, // Use SSL instead of STARTTLS
         auth: {
             user: envConfig.email,
             pass: envConfig.password,
         },
-        connectionTimeout: 20000, // Reduced timeout for faster failure
-        greetingTimeout: 10000,
-        socketTimeout: 20000,
+        connectionTimeout: 10000, // Reduced timeout for faster failure
+        greetingTimeout: 5000,
+        socketTimeout: 10000,
         pool: false, // Disable pooling on Render
         maxConnections: 1,
         maxMessages: 1,
-        rateDelta: 3000,
+        rateDelta: 2000,
         rateLimit: 1,
         tls: {
-            rejectUnauthorized: false // Allow self-signed certificates
-        }
+            rejectUnauthorized: false, // Allow self-signed certificates
+            ciphers: 'SSLv3'
+        },
+        // Additional options for Render.com
+        ignoreTLS: false,
+        requireTLS: true,
+        debug: false,
+        logger: false
     },
     // Mailgun SMTP configuration - fallback option
     mailgun: {
@@ -67,9 +74,9 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     // Check if recipient is the verified email for Resend
     const isVerifiedEmail = data.to === 'asbingamer@gmail.com';
     
-    // For production, prioritize Gmail if Resend domain is not verified
+    // For production, try multiple providers with better fallback
     const providers = isProduction 
-        ? (hasResendConfig && isVerifiedEmail ? ['resend', 'gmail'] as const : ['gmail', 'resend'] as const)
+        ? (hasResendConfig && isVerifiedEmail ? ['resend', 'gmail', 'mailgun'] as const : ['gmail', 'mailgun', 'resend'] as const)
         : ['resend', 'gmail', 'mailgun'] as const;
     
     console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
@@ -112,10 +119,10 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     secure: provider === 'gmail'
                 };
 
-                // Add timeout for email sending
+                // Add timeout for email sending (reduced for Render.com)
                 const sendPromise = transporter.sendMail(mailOptions);
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Email sending timeout')), 25000)
+                    setTimeout(() => reject(new Error('Email sending timeout')), 15000)
                 );
 
                 await Promise.race([sendPromise, timeoutPromise]);
@@ -134,15 +141,22 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     break; // Skip retries for this provider
                 }
                 
-                // If this is the last attempt for the last provider, fail completely
+                // Special handling for Gmail connection timeout
+                if (provider === 'gmail' && (error.message.includes('timeout') || error.message.includes('Connection timeout'))) {
+                    console.log(`Gmail connection timeout, trying next provider...`);
+                    break; // Skip retries for this provider
+                }
+                
+                // If this is the last attempt for the last provider, use console fallback
                 if (attempt === retries && provider === providers[providers.length - 1]) {
                     console.error("All email sending attempts with all providers failed");
-                    return false;
+                    console.log("Using console fallback for email notification...");
+                    return logOTPToConsole(data);
                 }
                 
                 // If this is not the last attempt for current provider, wait and retry
                 if (attempt < retries) {
-                    const waitTime = attempt * 1000; // 1s, 2s...
+                    const waitTime = attempt * 500; // Reduced wait time: 500ms, 1s...
                     console.log(`Waiting ${waitTime}ms before retry...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
