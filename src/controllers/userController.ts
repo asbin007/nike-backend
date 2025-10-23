@@ -454,7 +454,6 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
 
       // Delete related chats first to avoid foreign key constraint
       try {
-        const Chat = require('../database/models/chatModel.js').default;
         await Chat.destroy({
           where: { customerId: id }
         });
@@ -465,7 +464,6 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
 
       // Delete any other related data (orders, reviews, etc.)
       try {
-        const Order = require('../database/models/orderModel.js').default;
         await Order.destroy({
           where: { userId: id }
         });

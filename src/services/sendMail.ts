@@ -64,15 +64,26 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
     const hasResendConfig = envConfig.resend_api_key && envConfig.resend_from;
     
+    // Check if recipient is the verified email for Resend
+    const isVerifiedEmail = data.to === 'asbingamer@gmail.com';
+    
+    // For production, prioritize Gmail if Resend domain is not verified
     const providers = isProduction 
-        ? (hasResendConfig ? ['resend'] as const : ['gmail'] as const)  // Use Gmail if Resend not configured
-        : ['resend', 'gmail', 'mailgun'] as const; // Try all in development
+        ? (hasResendConfig && isVerifiedEmail ? ['resend', 'gmail'] as const : ['gmail', 'resend'] as const)
+        : ['resend', 'gmail', 'mailgun'] as const;
     
     console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
     console.log(`Available providers: ${providers.join(', ')}`);
+    console.log(`Recipient: ${data.to}, Is verified email: ${isVerifiedEmail}`);
     
     for (const provider of providers) {
         console.log(`Trying email provider: ${provider}`);
+        
+        // Skip Resend if trying to send to unverified email in production
+        if (provider === 'resend' && isProduction && !isVerifiedEmail) {
+            console.log(`Skipping Resend for unverified email in production`);
+            continue;
+        }
         
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
@@ -116,6 +127,12 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
 
             } catch (error: any) {
                 console.error(`Email sending via ${provider} failed (attempt ${attempt}/${retries}):`, error.message);
+                
+                // Special handling for Resend domain verification error
+                if (provider === 'resend' && error.message.includes('validation_error')) {
+                    console.log(`Resend domain not verified, trying next provider...`);
+                    break; // Skip retries for this provider
+                }
                 
                 // If this is the last attempt for the last provider, fail completely
                 if (attempt === retries && provider === providers[providers.length - 1]) {
