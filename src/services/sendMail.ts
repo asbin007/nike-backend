@@ -74,10 +74,10 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     // Check if recipient is the verified email for Resend
     const isVerifiedEmail = data.to === 'asbingamer@gmail.com';
     
-    // For production, prioritize Resend if configured, otherwise use Gmail
+    // For production, use Gmail as primary since Resend domain is not verified
     const providers = isProduction 
-        ? (hasResendConfig ? ['resend', 'gmail', 'mailgun'] as const : ['gmail', 'mailgun'] as const)
-        : ['resend', 'gmail', 'mailgun'] as const;
+        ? ['gmail', 'mailgun'] as const
+        : ['gmail', 'mailgun'] as const;
     
     console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
     console.log(`Available providers: ${providers.join(', ')}`);
@@ -86,43 +86,36 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
     for (const provider of providers) {
         console.log(`Trying email provider: ${provider}`);
         
-        // Try Resend for all emails if configured
-        if (provider === 'resend' && !hasResendConfig) {
-            console.log(`Skipping Resend - not configured`);
-            continue;
-        }
+        // Skip Resend for now since domain is not verified
+        // (This check is not needed since we removed resend from providers)
         
         for (let attempt = 1; attempt <= retries; attempt++) {
             try {
                 console.log(`Attempting to send email via ${provider} (attempt ${attempt}/${retries})`);
                 
-                // Handle Resend transport differently
-                const transporter = provider === 'resend' 
-                    ? emailConfigs.resend.createTransport()
-                    : nodemailer.createTransport(emailConfigs[provider]);
+                // Create transporter for Gmail or Mailgun
+                const transporter = nodemailer.createTransport(emailConfigs[provider]);
 
-                // Skip connection verification for Resend to avoid timeout issues
-                if (provider !== 'resend') {
+                // Skip connection verification to avoid timeout issues in production
+                if (process.env.NODE_ENV !== 'production') {
                     await transporter.verify();
                 }
 
                 const mailOptions = {
-                    // Use proper sender based on provider
-                    from: provider === 'resend' 
-                        ? (envConfig.resend_from || 'noreply@resend.dev')
-                        : envConfig.email,
+                    // Use Gmail as sender
+                    from: envConfig.email,
                     to: data.to,
                     subject: data.subject,
                     text: data.text,
                     html: data.html,
-                    requireTLS: provider !== 'resend',
+                    requireTLS: true,
                     secure: provider === 'gmail'
                 };
 
-                // Add timeout for email sending (reduced for Render.com)
+                // Add timeout for email sending (increased for better reliability)
                 const sendPromise = transporter.sendMail(mailOptions);
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Email sending timeout')), 15000)
+                    setTimeout(() => reject(new Error('Email sending timeout')), 30000)
                 );
 
                 const result = await Promise.race([sendPromise, timeoutPromise]);
@@ -136,23 +129,24 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
             } catch (error: any) {
                 console.error(`Email sending via ${provider} failed (attempt ${attempt}/${retries}):`, error.message);
                 
-                // Special handling for Resend errors
-                if (provider === 'resend') {
-                    if (error.message.includes('validation_error')) {
-                        console.log(`❌ Resend validation error: ${error.message}`);
-                        console.log(`💡 Tip: Verify your domain at https://resend.com/domains`);
-                        break; // Skip retries for this provider
-                    } else if (error.message.includes('rate_limit')) {
-                        console.log(`⏰ Resend rate limit exceeded, trying next provider...`);
-                        break; // Skip retries for this provider
-                    } else {
-                        console.log(`❌ Resend error: ${error.message}`);
-                    }
+                // Special handling for provider-specific errors
+                if (error.message.includes('validation_error')) {
+                    console.log(`❌ Validation error: ${error.message}`);
+                    break; // Skip retries for this provider
+                } else if (error.message.includes('rate_limit')) {
+                    console.log(`⏰ Rate limit exceeded, trying next provider...`);
+                    break; // Skip retries for this provider
                 }
                 
                 // Special handling for Gmail connection timeout
                 if (provider === 'gmail' && (error.message.includes('timeout') || error.message.includes('Connection timeout'))) {
                     console.log(`Gmail connection timeout, trying next provider...`);
+                    break; // Skip retries for this provider
+                }
+                
+                // Special handling for Mailgun timeout
+                if (provider === 'mailgun' && (error.message.includes('timeout') || error.message.includes('Connection timeout'))) {
+                    console.log(`Mailgun connection timeout, trying next provider...`);
                     break; // Skip retries for this provider
                 }
                 

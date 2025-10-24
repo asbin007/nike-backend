@@ -98,32 +98,42 @@ function startServer() {
 
       const { token } = socket.handshake.auth;
       if (token) {
-        jwt.verify(
-          token as string,
-          envConfig.jwtSecret as string,
-          async (err: any, result: any) => {
-            if (err) {
-              socket.emit("error", err);
-              return;
-            }
-            const userData = await User.findByPk(result.userId);
+        try {
+          const decoded = jwt.verify(token as string, envConfig.jwtSecret as string) as any;
+          
+          // Use async/await properly
+          const authenticateUser = async () => {
+            const userData = await User.findByPk(decoded.userId);
+            
             if (!userData) {
               socket.emit("error", "No user found with that token");
               return;
             }
-            addToOnlineUsers(socket.id, result.userId, userData.role);
+            
+            addToOnlineUsers(socket.id, decoded.userId, userData.role);
 
             socket.data = {
-              userId: result.userId,
+              userId: decoded.userId,
               role: userData.role,
               username: userData.username,
             };
 
             console.log("User authenticated:", userData.username);
-          }
-        );
+          };
+          
+          authenticateUser();
+        } catch (err: any) {
+          console.error("JWT verification error:", err.message);
+          socket.emit("error", "Invalid token");
+        }
       } else {
-        socket.emit("error", "Please provide token");
+        console.log("No token provided, allowing connection for public features");
+        // Allow connection without authentication for public features
+        socket.data = {
+          userId: null,
+          role: 'guest',
+          username: 'Guest',
+        };
       }
 
       // Handle order status updates
@@ -217,6 +227,7 @@ function startServer() {
       socket.on("sendMessage", async (data) => {
         const { chatId, content, imageUrl } = data;
         const senderId = socket.data?.userId;
+        const userRole = socket.data?.role;
 
         if (!chatId || (!content && !imageUrl) || !senderId) {
           socket.emit(
@@ -227,21 +238,27 @@ function startServer() {
         }
 
         try {
-          const chat = await Chat.findOne({
-            where: {
-              id: chatId,
-              [socket.data?.role === "admin" ? "adminId" : "customerId"]:
-                senderId,
-            },
-          });
+          // For admin, allow access to any chat; for customer, only their chats
+          let chat;
+          if (userRole === 'admin') {
+            chat = await Chat.findOne({
+              where: { id: chatId }
+            });
+          } else {
+            chat = await Chat.findOne({
+              where: { 
+                id: chatId,
+                customerId: senderId 
+              }
+            });
+          }
 
           if (!chat) {
             socket.emit("error", "Access denied to this chat");
             return;
           }
 
-          const receiverId =
-            socket.data?.role === "admin" ? chat.customerId : chat.adminId;
+          const receiverId = userRole === 'admin' ? chat.customerId : chat.adminId;
 
           const message = await Message.create({
             chatId,
@@ -270,12 +287,14 @@ function startServer() {
             ],
           });
 
+          // Emit to all users in the chat room
           io.to(chatId).emit("receiveMessage", messageWithUser);
 
+          // Send notification to receiver if they're online
           const receiverSocket = activeUser.find(
             (user) => user.userId === receiverId
           );
-          if (receiverSocket && !socket.rooms.has(chatId)) {
+          if (receiverSocket) {
             io.to(receiverSocket.socketId).emit("newMessageNotification", {
               chatId,
               message: messageWithUser,
