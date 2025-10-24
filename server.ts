@@ -103,31 +103,43 @@ function startServer() {
           
           // Use async/await properly
           const authenticateUser = async () => {
-            const userData = await User.findByPk(decoded.userId);
-            
-            if (!userData) {
-              socket.emit("error", "No user found with that token");
-              return;
+            try {
+              const userData = await User.findByPk(decoded.userId);
+              
+              if (!userData) {
+                console.log("❌ No user found with that token");
+                socket.emit("error", "No user found with that token");
+                return;
+              }
+              
+              addToOnlineUsers(socket.id, decoded.userId, userData.role);
+
+              socket.data = {
+                userId: decoded.userId,
+                role: userData.role,
+                username: userData.username,
+              };
+
+              console.log("✅ User authenticated:", userData.username, "Role:", userData.role);
+            } catch (dbError) {
+              console.error("❌ Database error during authentication:", dbError);
+              socket.emit("error", "Authentication failed");
             }
-            
-            addToOnlineUsers(socket.id, decoded.userId, userData.role);
-
-            socket.data = {
-              userId: decoded.userId,
-              role: userData.role,
-              username: userData.username,
-            };
-
-            console.log("User authenticated:", userData.username);
           };
           
           authenticateUser();
         } catch (err: any) {
-          console.error("JWT verification error:", err.message);
-          socket.emit("error", "Invalid token");
+          console.error("❌ JWT verification error:", err.message);
+          if (err.name === 'JsonWebTokenError') {
+            socket.emit("error", "Invalid token signature");
+          } else if (err.name === 'TokenExpiredError') {
+            socket.emit("error", "Token expired");
+          } else {
+            socket.emit("error", "Invalid token");
+          }
         }
       } else {
-        console.log("No token provided, allowing connection for public features");
+        console.log("⚠️ No token provided, allowing connection for public features");
         // Allow connection without authentication for public features
         socket.data = {
           userId: null,
@@ -229,11 +241,20 @@ function startServer() {
         const senderId = socket.data?.userId;
         const userRole = socket.data?.role;
 
+        console.log("💬 WebSocket sendMessage received:", { chatId, content: content?.substring(0, 50), senderId, userRole });
+
         if (!chatId || (!content && !imageUrl) || !senderId) {
+          console.log("❌ Missing required fields for sendMessage");
           socket.emit(
             "error",
             "Chat ID, content or image, and sender ID are required"
           );
+          return;
+        }
+
+        if (userRole === 'guest') {
+          console.log("❌ Guest users cannot send messages");
+          socket.emit("error", "Authentication required to send messages");
           return;
         }
 

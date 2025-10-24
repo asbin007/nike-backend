@@ -112,10 +112,10 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     secure: provider === 'gmail'
                 };
 
-                // Add timeout for email sending (increased for better reliability)
+                // Add timeout for email sending (reduced for faster fallback)
                 const sendPromise = transporter.sendMail(mailOptions);
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Email sending timeout')), 30000)
+                    setTimeout(() => reject(new Error('Email sending timeout')), 10000)
                 );
 
                 const result = await Promise.race([sendPromise, timeoutPromise]);
@@ -154,6 +154,12 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                 if (attempt === retries && provider === providers[providers.length - 1]) {
                     console.error("All email sending attempts with all providers failed");
                     console.log("Using console fallback for email notification...");
+                    return logOTPToConsole(data);
+                }
+                
+                // If timeout error, try console fallback immediately
+                if (error.message.includes('timeout') && attempt === retries) {
+                    console.log("Timeout error, using console fallback...");
                     return logOTPToConsole(data);
                 }
                 
