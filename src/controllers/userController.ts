@@ -9,8 +9,10 @@ import sendMail from "../services/sendMail.js";
 import checkOtpExpiration from "../services/optExpiration.js";
 import Cart from "../database/models/cartModel.js";
 import Order from "../database/models/orderModel.js";
+import OrderDetails from "../database/models/orderDetaills.js";
 import Chat from "../database/models/chatModel.js";
 import Message from "../database/models/messageModel.js";
+import ProductReview from "../database/models/productReviewModal.js";
 import { Op } from "sequelize";
 
 class UserController {
@@ -452,52 +454,126 @@ static async resetPassword(req: Request, res: Response): Promise<void> {
         return;
       }
 
-      // Delete related chats first to avoid foreign key constraint
+      // Delete all related data in proper order to avoid foreign key constraints
+      
+      // 1. Delete messages first (they reference chats and users)
       try {
-        await Chat.destroy({
-          where: { customerId: id }
+        const deletedMessages = await Message.destroy({
+          where: { 
+            [Op.or]: [
+              { senderId: id },
+              { receiverId: id }
+            ]
+          }
         });
-        console.log(`Deleted chats for user ${id}`);
-       } catch (chatError: any) {
-         console.log('No chats to delete or chat deletion failed:', chatError.message);
-       }
+        console.log(`Deleted ${deletedMessages} messages for user ${id}`);
+      } catch (messageError: any) {
+        console.log('No messages to delete or message deletion failed:', messageError.message);
+      }
 
-      // Delete any other related data (orders, reviews, etc.)
+      // 2. Delete chats (they reference users)
       try {
-        await Order.destroy({
+        const deletedChats = await Chat.destroy({
+          where: { 
+            [Op.or]: [
+              { customerId: id },
+              { adminId: id }
+            ]
+          }
+        });
+        console.log(`Deleted ${deletedChats} chats for user ${id}`);
+      } catch (chatError: any) {
+        console.log('No chats to delete or chat deletion failed:', chatError.message);
+      }
+
+      // 3. Delete cart items
+      try {
+        const deletedCartItems = await Cart.destroy({
           where: { userId: id }
         });
-        console.log(`Deleted orders for user ${id}`);
-       } catch (orderError: any) {
-         console.log('No orders to delete or order deletion failed:', orderError.message);
-       }
+        console.log(`Deleted ${deletedCartItems} cart items for user ${id}`);
+      } catch (cartError: any) {
+        console.log('No cart items to delete or cart deletion failed:', cartError.message);
+      }
 
-      // Now delete the user
+      // 4. Delete order details first (they reference orders)
+      try {
+        const orders = await Order.findAll({ where: { userId: id } });
+        const orderIds = orders.map(order => order.id);
+        
+        if (orderIds.length > 0) {
+          const deletedOrderDetails = await OrderDetails.destroy({
+            where: { orderId: orderIds }
+          });
+          console.log(`Deleted ${deletedOrderDetails} order details for user ${id}`);
+        }
+      } catch (orderDetailsError: any) {
+        console.log('No order details to delete or order details deletion failed:', orderDetailsError.message);
+      }
+
+      // 5. Delete orders
+      try {
+        const deletedOrders = await Order.destroy({
+          where: { userId: id }
+        });
+        console.log(`Deleted ${deletedOrders} orders for user ${id}`);
+      } catch (orderError: any) {
+        console.log('No orders to delete or order deletion failed:', orderError.message);
+      }
+
+      // 6. Delete product reviews (if they exist)
+      try {
+        const deletedReviews = await ProductReview.destroy({
+          where: { userId: id }
+        });
+        console.log(`Deleted ${deletedReviews} product reviews for user ${id}`);
+      } catch (reviewError: any) {
+        console.log('No product reviews to delete or review deletion failed:', reviewError.message);
+      }
+
+      // Finally, delete the user
       await User.destroy({
         where: { id },
       });
 
+      console.log(`✅ User ${id} and all related data deleted successfully`);
+
       res.status(200).json({
-        message: "User deleted successfully",
+        message: "User and all related data deleted successfully",
         deletedUserId: id,
+        deletedData: {
+          messages: "All user messages deleted",
+          chats: "All user chats deleted", 
+          cartItems: "All cart items deleted",
+          orderDetails: "All order details deleted",
+          orders: "All orders deleted",
+          reviews: "All product reviews deleted"
+        }
       });
       
     } catch (error: any) {
-      console.error('Delete user error:', error);
+      console.error('❌ Delete user error:', error);
       
       // Handle specific database errors
       if (error.name === 'SequelizeForeignKeyConstraintError') {
         res.status(400).json({ 
-          message: "Cannot delete user because they have related data (chats, orders, etc.)" 
+          message: "Cannot delete user due to foreign key constraints. This should not happen with the new deletion logic.",
+          error: "Foreign key constraint error",
+          suggestion: "Try again or contact support if the issue persists"
         });
       } else if (error.name === 'SequelizeValidationError') {
         res.status(400).json({ 
-          message: "Validation error: " + error.message 
+          message: "Validation error while deleting user: " + error.message 
+        });
+      } else if (error.name === 'SequelizeDatabaseError') {
+        res.status(500).json({
+          message: "Database error while deleting user",
+          error: "Database operation failed"
         });
       } else {
         res.status(500).json({
           message: "Internal server error while deleting user",
-          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+          error: process.env.NODE_ENV === 'development' ? error.message : "An unexpected error occurred"
         });
       }
     }
