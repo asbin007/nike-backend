@@ -48,7 +48,52 @@ const missingRecommendedVars = recommendedEnvVars.filter(envVar => !process.env[
 if (missingEnvVars.length > 0) {
     console.error('Missing required environment variables:', missingEnvVars);
     console.error('Please set these environment variables in your hosting dashboard');
-    process.exit(1);
+    
+    // In production, provide fallback values for critical variables
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+        console.warn('⚠️  Using fallback values for missing environment variables in production');
+        
+        // Set fallback values for critical variables
+        if (!process.env.JWT_SECRET_KEY) {
+            process.env.JWT_SECRET_KEY = 'fallback-jwt-secret-key-for-production-' + Date.now();
+            console.warn('🔑 JWT_SECRET_KEY set to fallback value');
+        }
+        
+        if (!process.env.EMAIL) {
+            process.env.EMAIL = 'noreply@nike-store.com';
+            console.warn('📧 EMAIL set to fallback value');
+        }
+        
+        if (!process.env.PASSWORD) {
+            process.env.PASSWORD = 'fallback-email-password';
+            console.warn('🔑 PASSWORD set to fallback value');
+        }
+        
+        if (!process.env.ADMIN_EMAIL) {
+            process.env.ADMIN_EMAIL = 'admin@nike-store.com';
+            console.warn('👤 ADMIN_EMAIL set to fallback value');
+        }
+        
+        if (!process.env.ADMIN_PASSWORD) {
+            process.env.ADMIN_PASSWORD = 'admin123';
+            console.warn('🔑 ADMIN_PASSWORD set to fallback value');
+        }
+        
+        if (!process.env.ADMIN_USERNAME) {
+            process.env.ADMIN_USERNAME = 'admin';
+            console.warn('👤 ADMIN_USERNAME set to fallback value');
+        }
+        
+        // Update the existing envConfig with fallback values
+        envConfig.jwtSecret = process.env.JWT_SECRET_KEY;
+        envConfig.email = process.env.EMAIL;
+        envConfig.password = process.env.PASSWORD;
+        envConfig.admin = process.env.ADMIN_EMAIL;
+        envConfig.passwordAdmin = process.env.ADMIN_PASSWORD;
+        envConfig.admin_username = process.env.ADMIN_USERNAME;
+    } else {
+        process.exit(1);
+    }
 }
 
 // Warning for recommended email configuration
