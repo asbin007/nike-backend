@@ -7,7 +7,7 @@ export const envConfig = {
     port: process.env.PORT,
     databaseUrl: process.env.DATABASE_URL,
     dbUrl: process.env.DATABASE_URL,
-    jwtSecret: process.env.JWT_SECRETE_KEY,
+    jwtSecret: process.env.JWT_SECRET_KEY,
     jwtExpiration: process.env.JWT_EXPIRE_IN || '24h',
     email: process.env.EMAIL,
 password: process.env.PASSWORD,
@@ -28,7 +28,7 @@ admin: process.env.ADMIN_EMAIL,
 // Validate required environment variables
 const requiredEnvVars = [
     'DATABASE_URL',
-    'JWT_SECRETE_KEY',
+    'JWT_SECRET_KEY',
     'EMAIL',
     'PASSWORD',
     'ADMIN_EMAIL',

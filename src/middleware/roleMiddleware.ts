@@ -13,7 +13,8 @@ export enum Role {
 export const requireRole = (allowedRoles: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const token = req.headers.authorization;
+      const authHeader = req.headers.authorization || "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
       
       console.log("🔍 Role middleware - Authorization header:", token ? `${token.substring(0, 20)}...` : "No token");
       console.log("🔍 Role middleware - Allowed roles:", allowedRoles);

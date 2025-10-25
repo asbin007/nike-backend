@@ -18,15 +18,15 @@ const emailConfigs = {
     gmail: {
         service: 'gmail',
         host: 'smtp.gmail.com',
-        port: 465, // Use port 465 for SSL (more reliable on Render)
-        secure: true, // Use SSL instead of STARTTLS
+        port: 587, // Use port 587 for STARTTLS (more reliable on Render)
+        secure: false, // Use STARTTLS instead of SSL
         auth: {
             user: envConfig.email,
             pass: envConfig.password,
         },
-        connectionTimeout: 10000, // Reduced timeout for faster failure
-        greetingTimeout: 5000,
-        socketTimeout: 10000,
+        connectionTimeout: 30000, // Increased timeout for production
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
         pool: false, // Disable pooling on Render
         maxConnections: 1,
         maxMessages: 1,
@@ -34,7 +34,7 @@ const emailConfigs = {
         rateLimit: 1,
         tls: {
             rejectUnauthorized: false, // Allow self-signed certificates
-            ciphers: 'SSLv3'
+            ciphers: 'TLSv1.2'
         },
         // Additional options for Render.com
         ignoreTLS: false,
@@ -57,6 +57,12 @@ const emailConfigs = {
         pool: false,
         maxConnections: 1,
         maxMessages: 1,
+        tls: {
+            rejectUnauthorized: false,
+            ciphers: 'TLSv1.2'
+        },
+        requireTLS: true,
+        ignoreTLS: false
     }
 };
 
@@ -97,9 +103,10 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                 const transporter = nodemailer.createTransport(emailConfigs[provider]);
 
                 // Skip connection verification to avoid timeout issues in production
-                if (process.env.NODE_ENV !== 'production') {
-                    await transporter.verify();
-                }
+                // Connection verification can cause timeouts on Render.com
+                // if (process.env.NODE_ENV !== 'production') {
+                //     await transporter.verify();
+                // }
 
                 const mailOptions = {
                     // Use Gmail as sender
@@ -112,10 +119,10 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     secure: provider === 'gmail'
                 };
 
-                // Add timeout for email sending (reduced for faster fallback)
+                // Add timeout for email sending (increased for production)
                 const sendPromise = transporter.sendMail(mailOptions);
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Email sending timeout')), 10000)
+                    setTimeout(() => reject(new Error('Email sending timeout')), 30000)
                 );
 
                 const result = await Promise.race([sendPromise, timeoutPromise]);
@@ -163,6 +170,12 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
                     return logOTPToConsole(data);
                 }
                 
+                // If connection error, try console fallback immediately
+                if (error.message.includes('Connection timeout') && attempt === retries) {
+                    console.log("Connection timeout error, using console fallback...");
+                    return logOTPToConsole(data);
+                }
+                
                 // If this is not the last attempt for current provider, wait and retry
                 if (attempt < retries) {
                     const waitTime = attempt * 500; // Reduced wait time: 500ms, 1s...
@@ -178,6 +191,8 @@ const sendMail = async(data: IData, retries: number = 2): Promise<boolean> => {
         }
     }
     
-    return false;
+    // Final fallback - if all providers failed, use console logging
+    console.error("All email providers failed, using console fallback...");
+    return logOTPToConsole(data);
 }
 export default sendMail;

@@ -68,8 +68,8 @@ class UserController {
       try {
         console.log(`Sending OTP email to ${email}...`);
         
-        // Set a timeout for email sending (30 seconds)
-        const emailPromise = sendMail({
+        // Send email with improved error handling
+        const emailResult = await sendMail({
           to: email,
           subject: "Registration OTP - ShowMart",
           text: `Your registration OTP is: ${otp}. This OTP will expire in 10 minutes.`,
@@ -87,12 +87,6 @@ class UserController {
             </div>
           `
         });
-
-        const emailTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email sending timeout')), 30000)
-        );
-
-        const emailResult = await Promise.race([emailPromise, emailTimeout]);
         
         if (emailResult) {
           console.log(`OTP email sent successfully to ${email}`);
@@ -103,7 +97,15 @@ class UserController {
             requiresOtp: true,
           });
         } else {
-          throw new Error('Email sending failed');
+          // Email sending failed but user is still created
+          console.log("Email sending failed, but user created successfully");
+          res.status(201).json({
+            message: "User registered successfully. Please check your email for OTP. If you don't receive it, try logging in to resend.",
+            userId: newUser.id,
+            email: newUser.email,
+            requiresOtp: true,
+            emailWarning: "Email delivery may be delayed. Please check your spam folder or try logging in to resend OTP.",
+          });
         }
       } catch (emailError) {
         console.error("Email sending failed:", emailError);
