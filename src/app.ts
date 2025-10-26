@@ -1,14 +1,14 @@
 import express from "express";
-import "./database/connection.js";
-import userRoute from "./routes/userRoute.js";
-import categoryRoute from "./routes/categoryRoute.js";
-import productRoute from "./routes/productRoute.js";
-import collectionRoute from "./routes/collectionRoute.js";
-import cartRoute from './routes/cartRoute.js'
-import orderRoute from './routes/orderRoute.js'
-import reviewRoute from './routes/productReviewRoute.js'
-import chatRoute from './routes/chatRoute.js'
-import recommendationRoute from './routes/recommendationRoute.js'
+import "./database/connection";
+import userRoute from "./routes/userRoute";
+import categoryRoute from "./routes/categoryRoute";
+import productRoute from "./routes/productRoute";
+import collectionRoute from "./routes/collectionRoute";
+import cartRoute from './routes/cartRoute';
+import orderRoute from './routes/orderRoute';
+import reviewRoute from './routes/productReviewRoute';
+import chatRoute from './routes/chatRoute';
+import recommendationRoute from './routes/recommendationRoute';
 import cors from "cors";
 const app = express();
 app.use(express.json());

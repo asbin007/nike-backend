@@ -1,14 +1,14 @@
 import http from "http";
-import { envConfig } from "./src/config/config.js";
-import app from "./src/app.ts";
+import { envConfig } from "./src/config/config";
+import app from "./src/app";
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import User from "./src/database/models/userModel.js";
-import Order from "./src/database/models/orderModel.js";
-import Payment from "./src/database/models/paymentModel.js";
-import Message from "./src/database/models/messageModel.js";
-import Chat from "./src/database/models/chatModel.js";
-import sequelize from "./src/database/connection.js";
+import User from "./src/database/models/userModel";
+import Order from "./src/database/models/orderModel";
+import Payment from "./src/database/models/paymentModel";
+import Message from "./src/database/models/messageModel";
+import Chat from "./src/database/models/chatModel";
+import sequelize from "./src/database/connection";
 
 function startServer() {
   const host = process.env.HOST || "0.0.0.0";
@@ -36,8 +36,8 @@ function startServer() {
           console.log("✅ Database synchronized successfully");
 
           // Run seeders
-          const adminSeeder = (await import("./src/adminSeeder.js")).default;
-          const superAdminSeeder = (await import("./src/superAdminSeeder.js")).default;
+          const adminSeeder = (await import("./src/adminSeeder")).default;
+          const superAdminSeeder = (await import("./src/superAdminSeeder")).default;
           
           await adminSeeder();
           await superAdminSeeder();
