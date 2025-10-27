@@ -113,27 +113,40 @@ class ReviewController {
 
   async deleteReview(req: Request, res: Response): Promise<void> {
     const userId = req.user!.id;
+    const userRole = req.user!.role;
     const { id } = req.params;
 
-    // User can only delete their own review
+    // Check if review exists
     const review = await ProductReview.findOne({
-      where: { id, userId },
+      where: { id },
     });
 
     if (!review) {
       res.status(404).json({
-        message:
-          "Review not found or you do not have permission to delete this review",
+        message: "Review not found",
+      });
+      return;
+    }
+
+    // Allow admins and super_admins to delete any review
+    // Regular users can only delete their own review
+    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isOwner = review.userId === userId;
+
+    if (!isAdmin && !isOwner) {
+      res.status(403).json({
+        message: "You do not have permission to delete this review",
       });
       return;
     }
 
     await ProductReview.destroy({
-      where: { id, userId },
+      where: { id },
     });
 
     res.status(200).json({
       message: "Review deleted successfully",
+      data: { id },
     });
   }
 
