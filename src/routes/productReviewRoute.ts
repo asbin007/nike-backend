@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 import errorHandler from "../services/errorHandler.js";
 import userMiddleware from "../middleware/userMiddleware.js";
-import { requireCustomer } from "../middleware/roleMiddleware.js";
+import { requireCustomer, requireRole, Role } from "../middleware/roleMiddleware.js";
 import productReviewController from "../controllers/productReviewController.js";
 
 const router: Router = express.Router();
@@ -17,10 +17,10 @@ router.route('/:productId').get(errorHandler(productReviewController.getReviewBy
 // GET all reviews - public
 router.route('/').get(errorHandler(productReviewController.getAllReviews));
 
-// DELETE and PATCH review by ID - customers only
+// DELETE and PATCH review by ID - authenticated users (ownership checked in controller)
 router
   .route('/:id')
-  .delete(requireCustomer, errorHandler(productReviewController.deleteReview))
-  .patch(requireCustomer, errorHandler(productReviewController.updateReview));
+  .delete(requireRole([Role.Customer, Role.Admin, Role.SuperAdmin]), errorHandler(productReviewController.deleteReview))
+  .patch(requireRole([Role.Customer, Role.Admin, Role.SuperAdmin]), errorHandler(productReviewController.updateReview));
 
 export default router;
