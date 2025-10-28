@@ -112,13 +112,17 @@ class ReviewController {
   }
 
   async deleteReview(req: Request, res: Response): Promise<void> {
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
     const { id } = req.params;
+    const userRole = req.user?.role;
+    const userId = req.user!.id;
 
-    // Check if review exists
-    const review = await ProductReview.findOne({
-      where: { id },
+    const review = await ProductReview.findByPk(id, {
+      include: [
+        {
+          model: User,
+          attributes: ["id"],
+        },
+      ],
     });
 
     if (!review) {
@@ -171,13 +175,21 @@ class ReviewController {
 
     // User can only update their own review
     const review = await ProductReview.findOne({
-      where: { id, userId },
+      where: { id },
+      include: [{ model: User, attributes: ["id", "username"] }],
     });
 
     if (!review) {
       res.status(404).json({
         message:
           "Review not found or you do not have permission to update this review",
+      });
+      return;
+    }
+
+    if (review.userId !== userId) {
+      res.status(403).json({
+        message: "You do not have permission to update this review",
       });
       return;
     }

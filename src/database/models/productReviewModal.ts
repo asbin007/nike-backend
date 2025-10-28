@@ -39,7 +39,20 @@ class ProductReview extends Model {
     },
   })
   declare comment: string;
-  
+
+  @ForeignKey(() => User)
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  declare userId: string;
+
+  @ForeignKey(() => Shoe)
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  declare productId: string;
 }
 
 export default ProductReview;
