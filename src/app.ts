@@ -9,6 +9,7 @@ import orderRoute from './routes/orderRoute';
 import reviewRoute from './routes/productReviewRoute';
 import chatRoute from './routes/chatRoute';
 import recommendationRoute from './routes/recommendationRoute';
+import collectionSeeder from "./collectionSeeder";
 import cors from "cors";
 const app = express();
 app.use(express.json());
@@ -126,5 +127,8 @@ app.use('/api/chats',chatRoute)
 app.use('/api/recommendations', recommendationRoute)
 
 app.use(express.static('./src/uploads'));
+
+// Seed collections on startup
+collectionSeeder();
 
 export default app;
