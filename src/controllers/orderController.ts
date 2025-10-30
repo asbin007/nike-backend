@@ -127,7 +127,7 @@ class OrderController {
     // for payment
     if (paymentMethod === PaymentMethod.Khalti) {
       const data = {
-        return_url: (process.env.FRONTEND_URL || "https://nike-frontend.vercel.app") + "/payment-success",
+        return_url: "http://localhost:5173/my-orders",
         website_url: process.env.FRONTEND_URL || "https://nike-frontend.vercel.app/",
         amount: finalTotalPrice * 100,
         purchase_order_id: orderData.id,

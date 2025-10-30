@@ -47,6 +47,7 @@ const missingRecommendedVars = recommendedEnvVars.filter(envVar => !process.env[
 
 if (missingEnvVars.length > 0) {
     console.error('Missing required environment variables:', missingEnvVars);
+    console.error('DATABASE_URL:', process.env.DATABASE_URL); // Add this line
     console.error('Please set these environment variables in your hosting dashboard');
     
     // In production, provide fallback values for critical variables
