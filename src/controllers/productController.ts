@@ -8,6 +8,7 @@ import Cart from "../database/models/cartModel.js";
 import ProductReview from "../database/models/productReviewModal.js";
 import User from "../database/models/userModel.js";
 import { Model } from "sequelize-typescript";
+import { getIoInstance } from "../setup-websocket.js";
 class ProductController {
      // Helper function to transform input to array of strings
   private static transformToArray(value: any): string[] {
@@ -289,6 +290,42 @@ class ProductController {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
+  }
+
+  async decreaseProductStock(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    if (!quantity || typeof quantity !== 'number' || quantity <= 0) {
+      res.status(400).json({ message: "Invalid quantity provided" });
+      return;
+    }
+
+    const product = await Shoe.findByPk(id);
+
+    if (!product) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    if (product.totalStock < quantity) {
+      res.status(400).json({ message: "Not enough stock available" });
+      return;
+    }
+
+    product.totalStock -= quantity;
+    await product.save();
+
+    // Emit WebSocket event for real-time update
+    const io = getIoInstance();
+    if (io) {
+      io.emit('stockUpdated', { productId: product.id, newStock: product.totalStock });
+    }
+
+    res.status(200).json({
+      message: "Product stock decreased successfully",
+      data: product,
+    });
   }
 
 }

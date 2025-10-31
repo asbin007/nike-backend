@@ -29,4 +29,12 @@ router
 )
   .get(errorHandler(productController.getSingleProduct)).patch(upload.array("images",5), errorHandler(productController.updateProduct));
 
+router
+  .route("/decrease-stock/:id")
+  .patch(
+    userMiddleware.isUserLoggedIn,
+    userMiddleware.accessTo(Role.Admin),
+    errorHandler(productController.decreaseProductStock)
+  );
+
 export default router;
