@@ -19,7 +19,9 @@ const superAdminSeeder = async () => {
     })
     console.log("Super Admin seeded successfully")
   } else {
-    console.log("Super Admin already seeded")
+    data.password = bcrypt.hashSync(envConfig.superAdminPassword || 'superadmin123', 10);
+    await data.save();
+    console.log("Super Admin already seeded. Password updated to match environment.")
   }
 }
 

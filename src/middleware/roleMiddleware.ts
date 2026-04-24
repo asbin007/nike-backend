@@ -7,6 +7,7 @@ export enum Role {
   Admin = "admin",
   Customer = "customer",
   SuperAdmin = "super_admin",
+  Delivery = "delivery",
 }
 
 // Middleware to check if user has specific role
@@ -80,3 +81,6 @@ export const requireAdmin = requireRole([Role.Admin, Role.SuperAdmin]);
 
 // Middleware specifically for super admin-only routes
 export const requireSuperAdmin = requireRole([Role.SuperAdmin]);
+
+// Middleware for admin or delivery operations
+export const requireDeliveryOrAdmin = requireRole([Role.Admin, Role.SuperAdmin, Role.Delivery]);

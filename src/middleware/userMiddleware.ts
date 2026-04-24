@@ -7,6 +7,7 @@ export enum Role {
   Admin = "admin",
   Customer = "customer",
   SuperAdmin = "super_admin",
+  Delivery = "delivery",
 }
 
 // Extend Express Request interface globally

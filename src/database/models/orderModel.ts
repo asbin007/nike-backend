@@ -100,6 +100,13 @@ class Order extends Model {
     })
     declare userId: string;
 
+    @ForeignKey(() => User)
+    @Column({
+      type: DataType.UUID,
+      allowNull: true,
+    })
+    declare deliveryBoyId: string;
+
     @Column({
       type: DataType.UUID,
       allowNull: false,

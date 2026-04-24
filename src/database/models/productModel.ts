@@ -103,7 +103,7 @@ class Shoe extends Model {
     allowNull: true,
     defaultValue: 0,
   })
-  declare totalStock: Number;
+  declare totalStock: number;
 
   @Column({
     type: DataType.UUID,

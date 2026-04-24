@@ -1,0 +1,1 @@
+ALTER TYPE "enum_users_role" ADD VALUE 'delivery';

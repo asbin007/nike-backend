@@ -10,19 +10,18 @@ const data= await User.findOne({
         email:envConfig.admin
     }
 })
-if(!data){
+if (!data) {
     await User.create({
-        username:envConfig.admin_username,
-        email:envConfig.admin,
+        username: envConfig.admin_username,
+        email: envConfig.admin,
         password: bcrypt.hashSync(envConfig.passwordAdmin as string, 10),
-        role:"admin"
-
-    })
-    console.log("Admin seeded successfully")
-
-}
-else{
-    console.log("Admin already seeded")
+        role: "admin"
+    });
+    console.log("Admin seeded successfully");
+} else {
+    data.password = bcrypt.hashSync(envConfig.passwordAdmin as string, 10);
+    await data.save();
+    console.log("Admin already seeded. Password updated to match environment.");
 }
 
 }

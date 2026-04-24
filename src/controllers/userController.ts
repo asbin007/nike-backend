@@ -607,8 +607,8 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
         });
         return;
       }
-      if(user.role!==Role.Admin){
-          res.status(403).json({ message: "Access denied. Admins only." });
+      if(user.role!==Role.Admin && user.role !== Role.Delivery){
+          res.status(403).json({ message: "Access denied. Admins or Delivery only." });
       return;
 
       }
@@ -687,6 +687,61 @@ static async adminLogin(req: Request, res: Response): Promise<void> {
         username: newAdmin.username,
         email: newAdmin.email,
         role: newAdmin.role,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Internal server error",
+        error: error,
+      });
+    }
+  }
+
+  static async registerDelivery(req: Request, res: Response): Promise<void> {
+    try {
+      const { username, email, password } = req.body;
+      
+      // basic validation
+      if (!username || !email || !password) {
+        res.status(400).json({
+          message: "Fill all the fields",
+        });
+        return;
+      }
+
+      // check password length
+      if (password.length < 6) {
+        res.status(400).json({
+          message: "Password must be at least 6 characters long",
+        });
+        return;
+      }
+
+      // see if user already exists
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        res.status(400).json({
+          message: "User already exists",
+        });
+        return;
+      }
+
+      // hash the password and create delivery user directly (no OTP verification needed)
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const newDelivery = await User.create({
+        username,
+        email,
+        password: hashedPassword,
+        role: Role.Delivery, // Set role as delivery
+        isVerified: true, // Delivery is verified immediately
+      });
+
+      res.status(201).json({
+        message: "Delivery boy registered successfully. You can now login.",
+        userId: newDelivery.id,
+        username: newDelivery.username,
+        email: newDelivery.email,
+        role: newDelivery.role,
       });
     } catch (error) {
       console.error(error);

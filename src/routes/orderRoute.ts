@@ -1,6 +1,6 @@
     import express,{ Router } from "express";
     import userMiddleware, { Role } from "../middleware/userMiddleware.js";
-    import { requireCustomer, requireAdmin } from "../middleware/roleMiddleware.js";
+    import { requireCustomer, requireAdmin, requireDeliveryOrAdmin } from "../middleware/roleMiddleware.js";
     import errorHandler from "../services/errorHandler.js";
     import orderController from "../controllers/orderController.js";
 
@@ -24,7 +24,10 @@
     
     // Admin-only operations
     router.route("/admin/:id").get(requireAdmin, errorHandler(orderController.fetchMyOrderDetail))
-    router.route("/admin/change-status/:id").patch(requireAdmin, errorHandler(orderController.changeOrderStatus))
+    
+    // Order status can be changed by Admin or Delivery personnel
+    router.route("/admin/change-status/:id").patch(requireDeliveryOrAdmin, errorHandler(orderController.changeOrderStatus))
+    
     router.route("/admin/change-payment-status/:id").patch(requireAdmin, errorHandler(orderController.changePaymentStatus))
     router.route("/admin/delete-order/:id").delete(requireAdmin, errorHandler(orderController.deleteOrder))
     router.route("/admin/bulk-delete-orders").delete(requireAdmin, errorHandler(orderController.bulkDeleteOrders))
